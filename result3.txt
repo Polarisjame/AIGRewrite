@@ -1,0 +1,61 @@
+nohup: ignoring input
+ABC command line: "&cec ../abc_rw_data/rw_aig_arithmetic/rw_adder.aig ../novel_rw_data/rw_aig_arithmetic/rw_adder.aig".
+
+Networks are equivalent.  Time =     0.27 sec
+ABC command line: "&cec ../abc_rw_data/rw_aig_arithmetic/rw_bar.aig ../novel_rw_data/rw_aig_arithmetic/rw_bar.aig".
+
+Networks are equivalent.  Time =     0.08 sec
+ABC command line: "&cec ../abc_rw_data/rw_aig_arithmetic/rw_div.aig ../novel_rw_data/rw_aig_arithmetic/rw_div.aig".
+
+Networks are equivalent.  Time =     8.69 sec
+ABC command line: "&cec ../abc_rw_data/rw_aig_arithmetic/rw_hyp.aig ../novel_rw_data/rw_aig_arithmetic/rw_hyp.aig".
+
+Networks are equivalent.  Time =   332.90 sec
+ABC command line: "&cec ../abc_rw_data/rw_aig_arithmetic/rw_log2.aig ../novel_rw_data/rw_aig_arithmetic/rw_log2.aig".
+
+Networks are equivalent.  Time =    55.60 sec
+ABC command line: "&cec ../abc_rw_data/rw_aig_arithmetic/rw_max.aig ../novel_rw_data/rw_aig_arithmetic/rw_max.aig".
+
+Networks are equivalent.  Time =     0.56 sec
+ABC command line: "&cec ../abc_rw_data/rw_aig_arithmetic/rw_multiplier.aig ../novel_rw_data/rw_aig_arithmetic/rw_multiplier.aig".
+
+Networks are equivalent.  Time =    19.91 sec
+ABC command line: "&cec ../abc_rw_data/rw_aig_arithmetic/rw_sin.aig ../novel_rw_data/rw_aig_arithmetic/rw_sin.aig".
+
+Networks are equivalent.  Time =     5.96 sec
+ABC command line: "&cec ../abc_rw_data/rw_aig_arithmetic/rw_sqrt.aig ../novel_rw_data/rw_aig_arithmetic/rw_sqrt.aig".
+
+Networks are equivalent.  Time =    23.26 sec
+ABC command line: "&cec ../abc_rw_data/rw_aig_arithmetic/rw_square.aig ../novel_rw_data/rw_aig_arithmetic/rw_square.aig".
+
+Networks are equivalent.  Time =     2.54 sec
+ABC command line: "&cec ../abc_rw_data/rw_aig_random_control/rw_arbiter.aig ../novel_rw_data/rw_aig_random_control/rw_arbiter.aig".
+
+Networks are equivalent.  Time =     0.13 sec
+ABC command line: "&cec ../abc_rw_data/rw_aig_random_control/rw_cavlc.aig ../novel_rw_data/rw_aig_random_control/rw_cavlc.aig".
+
+Networks are equivalent.  Time =     0.03 sec
+ABC command line: "&cec ../abc_rw_data/rw_aig_random_control/rw_ctrl.aig ../novel_rw_data/rw_aig_random_control/rw_ctrl.aig".
+
+Networks are equivalent.  Time =     0.02 sec
+ABC command line: "&cec ../abc_rw_data/rw_aig_random_control/rw_dec.aig ../novel_rw_data/rw_aig_random_control/rw_dec.aig".
+
+Networks are equivalent.  Time =     0.02 sec
+ABC command line: "&cec ../abc_rw_data/rw_aig_random_control/rw_i2c.aig ../novel_rw_data/rw_aig_random_control/rw_i2c.aig".
+
+Networks are equivalent.  Time =     0.06 sec
+ABC command line: "&cec ../abc_rw_data/rw_aig_random_control/rw_int2float.aig ../novel_rw_data/rw_aig_random_control/rw_int2float.aig".
+
+Networks are equivalent.  Time =     0.02 sec
+ABC command line: "&cec ../abc_rw_data/rw_aig_random_control/rw_mem_ctrl.aig ../novel_rw_data/rw_aig_random_control/rw_mem_ctrl.aig".
+
+Networks are equivalent.  Time =     4.37 sec
+ABC command line: "&cec ../abc_rw_data/rw_aig_random_control/rw_priority.aig ../novel_rw_data/rw_aig_random_control/rw_priority.aig".
+
+Networks are equivalent.  Time =     0.07 sec
+ABC command line: "&cec ../abc_rw_data/rw_aig_random_control/rw_router.aig ../novel_rw_data/rw_aig_random_control/rw_router.aig".
+
+Networks are equivalent.  Time =     0.05 sec
+ABC command line: "&cec ../abc_rw_data/rw_aig_random_control/rw_voter.aig ../novel_rw_data/rw_aig_random_control/rw_voter.aig".
+
+Networks are equivalent.  Time =     5.41 sec

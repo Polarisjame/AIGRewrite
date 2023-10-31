@@ -1,0 +1,3 @@
+/home/zhoulingfeng/pythonProgram/AIGRewrite/cbuild/CMakeFiles/rebuild_cache.dir
+/home/zhoulingfeng/pythonProgram/AIGRewrite/cbuild/CMakeFiles/edit_cache.dir
+/home/zhoulingfeng/pythonProgram/AIGRewrite/cbuild/CMakeFiles/gpuls.dir
