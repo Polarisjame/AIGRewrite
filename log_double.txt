@@ -1,0 +1,122 @@
+nohup: ignoring input
+processId: 488931
+>> Dynamic heap size changed to: 2048.00 MB
+Enhanced with GPU-based algorithm implementations, 
+by the Chinese University of Hong Kong
+ABC command line: "read ../data/aig_arithmetic/adder.aig; logic; double; double; double; double; double; double; double; double; double; double; strash; ps; write ../double_data/double_aig_arithmetic/double_adder.aig".
+
+[1;37m../data/aig_arithmetic/adder_2x_2x_2x_2x_2x_2x_2x_2x_2x_2x:[0m i/o =262144/132096  lat =    0  and =1044480  lev =255
+>> Dynamic heap size changed to: 2048.00 MB
+Enhanced with GPU-based algorithm implementations, 
+by the Chinese University of Hong Kong
+ABC command line: "read ../data/aig_arithmetic/bar.aig; logic; double; double; double; double; double; double; double; double; double; double; strash; ps; write ../double_data/double_aig_arithmetic/double_bar.aig".
+
+[1;37m../data/aig_arithmetic/bar_2x_2x_2x_2x_2x_2x_2x_2x_2x_2x:[0m i/o =138240/131072  lat =    0  and =3416064  lev = 12
+>> Dynamic heap size changed to: 2048.00 MB
+Enhanced with GPU-based algorithm implementations, 
+by the Chinese University of Hong Kong
+ABC command line: "read ../data/aig_arithmetic/div.aig; logic; double; double; double; double; double; double; double; double; double; double; strash; ps; write ../double_data/double_aig_arithmetic/double_div.aig".
+
+[1;37m../data/aig_arithmetic/div_2x_2x_2x_2x_2x_2x_2x_2x_2x_2x:[0m i/o =131072/131072  lat =    0  and =58620928  lev =4372
+>> Dynamic heap size changed to: 2048.00 MB
+Enhanced with GPU-based algorithm implementations, 
+by the Chinese University of Hong Kong
+ABC command line: "read ../data/aig_arithmetic/hyp.aig; logic; double; double; double; double; double; double; double; double; strash; ps; write ../double_data/double_aig_arithmetic/double_hyp.aig".
+
+[1;37m../data/aig_arithmetic/hyp_2x_2x_2x_2x_2x_2x_2x_2x:[0m i/o =65536/32768  lat =    0  and =54869760  lev =24801
+>> Dynamic heap size changed to: 2048.00 MB
+Enhanced with GPU-based algorithm implementations, 
+by the Chinese University of Hong Kong
+ABC command line: "read ../data/aig_arithmetic/log2.aig; logic; double; double; double; double; double; double; double; double; double; double; strash; ps; write ../double_data/double_aig_arithmetic/double_log2.aig".
+
+[1;37m../data/aig_arithmetic/log2_2x_2x_2x_2x_2x_2x_2x_2x_2x_2x:[0m i/o =32768/32768  lat =    0  and =32829440  lev =444
+>> Dynamic heap size changed to: 2048.00 MB
+Enhanced with GPU-based algorithm implementations, 
+by the Chinese University of Hong Kong
+ABC command line: "read ../data/aig_arithmetic/max.aig; logic; double; double; double; double; double; double; double; double; double; double; strash; ps; write ../double_data/double_aig_arithmetic/double_max.aig".
+
+[1;37m../data/aig_arithmetic/max_2x_2x_2x_2x_2x_2x_2x_2x_2x_2x:[0m i/o =524288/133120  lat =    0  and =2933760  lev =287
+>> Dynamic heap size changed to: 2048.00 MB
+Enhanced with GPU-based algorithm implementations, 
+by the Chinese University of Hong Kong
+ABC command line: "read ../data/aig_arithmetic/multiplier.aig; logic; double; double; double; double; double; double; double; double; double; double; strash; ps; write ../double_data/double_aig_arithmetic/double_multiplier.aig".
+
+[1;37m../data/aig_arithmetic/multiplier_2x_2x_2x_2x_2x_2x_2x_2x_2x_2x:[0m i/o =131072/131072  lat =    0  and =27711488  lev =274
+>> Dynamic heap size changed to: 2048.00 MB
+Enhanced with GPU-based algorithm implementations, 
+by the Chinese University of Hong Kong
+ABC command line: "read ../data/aig_arithmetic/sin.aig; logic; double; double; double; double; double; double; double; double; double; double; strash; ps; write ../double_data/double_aig_arithmetic/double_sin.aig".
+
+[1;37m../data/aig_arithmetic/sin_2x_2x_2x_2x_2x_2x_2x_2x_2x_2x:[0m i/o =24576/25600  lat =    0  and =5545984  lev =225
+>> Dynamic heap size changed to: 2048.00 MB
+Enhanced with GPU-based algorithm implementations, 
+by the Chinese University of Hong Kong
+ABC command line: "read ../data/aig_arithmetic/sqrt.aig; logic; double; double; double; double; double; double; double; double; double; double; strash; ps; write ../double_data/double_aig_arithmetic/double_sqrt.aig".
+
+[1;37m../data/aig_arithmetic/sqrt_2x_2x_2x_2x_2x_2x_2x_2x_2x_2x:[0m i/o =131072/65536  lat =    0  and =25208832  lev =5058
+>> Dynamic heap size changed to: 2048.00 MB
+Enhanced with GPU-based algorithm implementations, 
+by the Chinese University of Hong Kong
+ABC command line: "read ../data/aig_arithmetic/square.aig; logic; double; double; double; double; double; double; double; double; double; double; strash; ps; write ../double_data/double_aig_arithmetic/double_square.aig".
+
+[1;37m../data/aig_arithmetic/square_2x_2x_2x_2x_2x_2x_2x_2x_2x_2x:[0m i/o =65536/131072  lat =    0  and =18927616  lev =250
+>> Dynamic heap size changed to: 2048.00 MB
+Enhanced with GPU-based algorithm implementations, 
+by the Chinese University of Hong Kong
+ABC command line: "read ../data/aig_random_control/arbiter.aig; logic; double; double; double; double; double; double; double; double; double; double; strash; ps; write ../double_data/double_aig_random_control/double_arbiter.aig".
+
+[1;37m../data/aig_random_control/arbiter_2x_2x_2x_2x_2x_2x_2x_2x_2x_2x:[0m i/o =262144/132096  lat =    0  and =12123136  lev = 87
+>> Dynamic heap size changed to: 2048.00 MB
+Enhanced with GPU-based algorithm implementations, 
+by the Chinese University of Hong Kong
+ABC command line: "read ../data/aig_random_control/cavlc.aig; logic; double; double; double; double; double; double; double; double; double; double; strash; ps; write ../double_data/double_aig_random_control/double_cavlc.aig".
+
+[1;37m../data/aig_random_control/cavlc_2x_2x_2x_2x_2x_2x_2x_2x_2x_2x:[0m i/o =10240/11264  lat =    0  and = 709632  lev = 16
+>> Dynamic heap size changed to: 2048.00 MB
+Enhanced with GPU-based algorithm implementations, 
+by the Chinese University of Hong Kong
+ABC command line: "read ../data/aig_random_control/ctrl.aig; logic; double; double; double; double; double; double; double; double; double; double; strash; ps; write ../double_data/double_aig_random_control/double_ctrl.aig".
+
+[1;37m../data/aig_random_control/ctrl_2x_2x_2x_2x_2x_2x_2x_2x_2x_2x:[0m i/o = 7168/26624  lat =    0  and = 178176  lev = 10
+>> Dynamic heap size changed to: 2048.00 MB
+Enhanced with GPU-based algorithm implementations, 
+by the Chinese University of Hong Kong
+ABC command line: "read ../data/aig_random_control/dec.aig; logic; double; double; double; double; double; double; double; double; double; double; strash; ps; write ../double_data/double_aig_random_control/double_dec.aig".
+
+[1;37m../data/aig_random_control/dec_2x_2x_2x_2x_2x_2x_2x_2x_2x_2x:[0m i/o = 8192/262144  lat =    0  and = 311296  lev =  3
+>> Dynamic heap size changed to: 2048.00 MB
+Enhanced with GPU-based algorithm implementations, 
+by the Chinese University of Hong Kong
+ABC command line: "read ../data/aig_random_control/i2c.aig; logic; double; double; double; double; double; double; double; double; double; double; strash; ps; write ../double_data/double_aig_random_control/double_i2c.aig".
+
+[1;37m../data/aig_random_control/i2c_2x_2x_2x_2x_2x_2x_2x_2x_2x_2x:[0m i/o =150528/145408  lat =    0  and =1374208  lev = 20
+>> Dynamic heap size changed to: 2048.00 MB
+Enhanced with GPU-based algorithm implementations, 
+by the Chinese University of Hong Kong
+ABC command line: "read ../data/aig_random_control/int2float.aig; logic; double; double; double; double; double; double; double; double; double; double; strash; ps; write ../double_data/double_aig_random_control/double_int2float.aig".
+
+[1;37m../data/aig_random_control/int2float_2x_2x_2x_2x_2x_2x_2x_2x_2x_2x:[0m i/o =11264/ 7168  lat =    0  and = 266240  lev = 16
+>> Dynamic heap size changed to: 2048.00 MB
+Enhanced with GPU-based algorithm implementations, 
+by the Chinese University of Hong Kong
+ABC command line: "read ../data/aig_random_control/mem_ctrl.aig; logic; double; double; double; double; double; double; double; double; double; double; strash; ps; write ../double_data/double_aig_random_control/double_mem_ctrl.aig".
+
+[1;37m../data/aig_random_control/mem_ctrl_2x_2x_2x_2x_2x_2x_2x_2x_2x_2x:[0m i/o =1232896/1260544  lat =    0  and =47960064  lev =114
+>> Dynamic heap size changed to: 2048.00 MB
+Enhanced with GPU-based algorithm implementations, 
+by the Chinese University of Hong Kong
+ABC command line: "read ../data/aig_random_control/priority.aig; logic; double; double; double; double; double; double; double; double; double; double; strash; ps; write ../double_data/double_aig_random_control/double_priority.aig".
+
+[1;37m../data/aig_random_control/priority_2x_2x_2x_2x_2x_2x_2x_2x_2x_2x:[0m i/o =131072/ 8192  lat =    0  and =1001472  lev =250
+>> Dynamic heap size changed to: 2048.00 MB
+Enhanced with GPU-based algorithm implementations, 
+by the Chinese University of Hong Kong
+ABC command line: "read ../data/aig_random_control/router.aig; logic; double; double; double; double; double; double; double; double; double; double; strash; ps; write ../double_data/double_aig_random_control/double_router.aig".
+
+[1;37m../data/aig_random_control/router_2x_2x_2x_2x_2x_2x_2x_2x_2x_2x:[0m i/o =61440/30720  lat =    0  and = 263168  lev = 54
+>> Dynamic heap size changed to: 2048.00 MB
+Enhanced with GPU-based algorithm implementations, 
+by the Chinese University of Hong Kong
+ABC command line: "read ../data/aig_random_control/voter.aig; logic; double; double; double; double; double; double; double; double; double; double; strash; ps; write ../double_data/double_aig_random_control/double_voter.aig".
+
+[1;37m../data/aig_random_control/voter_2x_2x_2x_2x_2x_2x_2x_2x_2x_2x:[0m i/o =1025024/ 1024  lat =    0  and =14088192  lev = 70

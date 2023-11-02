@@ -1,0 +1,102 @@
+nohup: ignoring input
+processId: 560787
+ABC command line: "r ../double_data/double_aig_arithmetic/double_adder.aig; time; rw -lz; time; ps; w ../abc_double_rw_data/rw_double_aig_arithmetic/rw_double_adder.aig".
+
+elapse: 2.40 seconds, total: 2.40 seconds
+elapse: 12.74 seconds, total: 15.14 seconds
+[1;37m../double_data/double_aig_arithmetic/double_adder:[0m i/o =262144/132096  lat =    0  and =1044480  lev =255
+ABC command line: "r ../double_data/double_aig_arithmetic/double_bar.aig; time; rw -lz; time; ps; w ../abc_double_rw_data/rw_double_aig_arithmetic/rw_double_bar.aig".
+
+elapse: 5.73 seconds, total: 5.73 seconds
+elapse: 35.91 seconds, total: 41.64 seconds
+[1;37m../double_data/double_aig_arithmetic/double_bar:[0m i/o =138240/131072  lat =    0  and =3216384  lev = 15
+ABC command line: "r ../double_data/double_aig_arithmetic/double_div.aig; time; rw -lz; time; ps; w ../abc_double_rw_data/rw_double_aig_arithmetic/rw_double_div.aig".
+
+elapse: 96.18 seconds, total: 96.18 seconds
+elapse: 1008.19 seconds, total: 1104.37 seconds
+[1;37m../double_data/double_aig_arithmetic/double_div:[0m i/o =131072/131072  lat =    0  and =42161152  lev =4437
+ABC command line: "r ../double_data/double_aig_arithmetic/double_hyp.aig; time; rw -lz; time; ps; w ../abc_double_rw_data/rw_double_aig_arithmetic/rw_double_hyp.aig".
+
+elapse: 94.82 seconds, total: 94.82 seconds
+elapse: 1153.75 seconds, total: 1248.58 seconds
+[1;37m../double_data/double_aig_arithmetic/double_hyp:[0m i/o =65536/32768  lat =    0  and =54848512  lev =24904
+ABC command line: "r ../double_data/double_aig_arithmetic/double_log2.aig; time; rw -lz; time; ps; w ../abc_double_rw_data/rw_double_aig_arithmetic/rw_double_log2.aig".
+
+elapse: 47.19 seconds, total: 47.19 seconds
+elapse: 834.30 seconds, total: 881.49 seconds
+[1;37m../double_data/double_aig_arithmetic/double_log2:[0m i/o =32768/32768  lat =    0  and =31217664  lev =403
+ABC command line: "r ../double_data/double_aig_arithmetic/double_max.aig; time; rw -lz; time; ps; w ../abc_double_rw_data/rw_double_aig_arithmetic/rw_double_max.aig".
+
+elapse: 5.96 seconds, total: 5.96 seconds
+elapse: 34.94 seconds, total: 40.90 seconds
+[1;37m../double_data/double_aig_arithmetic/double_max:[0m i/o =524288/133120  lat =    0  and =2932736  lev =323
+ABC command line: "r ../double_data/double_aig_arithmetic/double_multiplier.aig; time; rw -lz; time; ps; w ../abc_double_rw_data/rw_double_aig_arithmetic/rw_double_multiplier.aig".
+
+elapse: 40.36 seconds, total: 40.36 seconds
+elapse: 556.65 seconds, total: 597.02 seconds
+[1;37m../double_data/double_aig_arithmetic/double_multiplier:[0m i/o =131072/131072  lat =    0  and =25954304  lev =264
+ABC command line: "r ../double_data/double_aig_arithmetic/double_sin.aig; time; rw -lz; time; ps; w ../abc_double_rw_data/rw_double_aig_arithmetic/rw_double_sin.aig".
+
+elapse: 8.79 seconds, total: 8.79 seconds
+elapse: 126.30 seconds, total: 135.09 seconds
+[1;37m../double_data/double_aig_arithmetic/double_sin:[0m i/o =24576/25600  lat =    0  and =5343232  lev =200
+ABC command line: "r ../double_data/double_aig_arithmetic/double_sqrt.aig; time; rw -lz; time; ps; w ../abc_double_rw_data/rw_double_aig_arithmetic/rw_double_sqrt.aig".
+
+elapse: 36.38 seconds, total: 36.38 seconds
+elapse: 559.55 seconds, total: 595.93 seconds
+[1;37m../double_data/double_aig_arithmetic/double_sqrt:[0m i/o =131072/65536  lat =    0  and =20103168  lev =6171
+ABC command line: "r ../double_data/double_aig_arithmetic/double_square.aig; time; rw -lz; time; ps; w ../abc_double_rw_data/rw_double_aig_arithmetic/rw_double_square.aig".
+
+elapse: 31.14 seconds, total: 31.14 seconds
+elapse: 364.32 seconds, total: 395.46 seconds
+[1;37m../double_data/double_aig_arithmetic/double_square:[0m i/o =65536/131072  lat =    0  and =18308096  lev =248
+ABC command line: "r ../double_data/double_aig_random_control/double_arbiter.aig; time; rw -lz; time; ps; w ../abc_double_rw_data/rw_double_aig_random_control/rw_double_arbiter.aig".
+
+elapse: 15.86 seconds, total: 15.86 seconds
+elapse: 152.24 seconds, total: 168.11 seconds
+[1;37m../double_data/double_aig_random_control/double_arbiter:[0m i/o =262144/132096  lat =    0  and =12123136  lev = 88
+ABC command line: "r ../double_data/double_aig_random_control/double_cavlc.aig; time; rw -lz; time; ps; w ../abc_double_rw_data/rw_double_aig_random_control/rw_double_cavlc.aig".
+
+elapse: 0.90 seconds, total: 0.90 seconds
+elapse: 6.72 seconds, total: 7.63 seconds
+[1;37m../double_data/double_aig_random_control/double_cavlc:[0m i/o =10240/11264  lat =    0  and = 703488  lev = 18
+ABC command line: "r ../double_data/double_aig_random_control/double_ctrl.aig; time; rw -lz; time; ps; w ../abc_double_rw_data/rw_double_aig_random_control/rw_double_ctrl.aig".
+
+elapse: 0.21 seconds, total: 0.21 seconds
+elapse: 1.91 seconds, total: 2.12 seconds
+[1;37m../double_data/double_aig_random_control/double_ctrl:[0m i/o = 7168/26624  lat =    0  and = 139264  lev = 10
+ABC command line: "r ../double_data/double_aig_random_control/double_dec.aig; time; rw -lz; time; ps; w ../abc_double_rw_data/rw_double_aig_random_control/rw_double_dec.aig".
+
+elapse: 1.74 seconds, total: 1.74 seconds
+elapse: 6.68 seconds, total: 8.41 seconds
+[1;37m../double_data/double_aig_random_control/double_dec:[0m i/o = 8192/262144  lat =    0  and = 311296  lev =  3
+ABC command line: "r ../double_data/double_aig_random_control/double_i2c.aig; time; rw -lz; time; ps; w ../abc_double_rw_data/rw_double_aig_random_control/rw_double_i2c.aig".
+
+elapse: 2.44 seconds, total: 2.44 seconds
+elapse: 16.68 seconds, total: 19.13 seconds
+[1;37m../double_data/double_aig_random_control/double_i2c:[0m i/o =150528/145408  lat =    0  and =1280000  lev = 18
+ABC command line: "r ../double_data/double_aig_random_control/double_int2float.aig; time; rw -lz; time; ps; w ../abc_double_rw_data/rw_double_aig_random_control/rw_double_int2float.aig".
+
+elapse: 0.28 seconds, total: 0.28 seconds
+elapse: 2.34 seconds, total: 2.62 seconds
+[1;37m../double_data/double_aig_random_control/double_int2float:[0m i/o =11264/ 7168  lat =    0  and = 227328  lev = 18
+ABC command line: "r ../double_data/double_aig_random_control/double_mem_ctrl.aig; time; rw -lz; time; ps; w ../abc_double_rw_data/rw_double_aig_random_control/rw_double_mem_ctrl.aig".
+
+elapse: 97.02 seconds, total: 97.02 seconds
+elapse: 613.32 seconds, total: 710.34 seconds
+[1;37m../double_data/double_aig_random_control/double_mem_ctrl:[0m i/o =1232896/1260544  lat =    0  and =47793152  lev =138
+ABC command line: "r ../double_data/double_aig_random_control/double_priority.aig; time; rw -lz; time; ps; w ../abc_double_rw_data/rw_double_aig_random_control/rw_double_priority.aig".
+
+elapse: 1.39 seconds, total: 1.39 seconds
+elapse: 12.78 seconds, total: 14.17 seconds
+[1;37m../double_data/double_aig_random_control/double_priority:[0m i/o =131072/ 8192  lat =    0  and = 877568  lev =246
+ABC command line: "r ../double_data/double_aig_random_control/double_router.aig; time; rw -lz; time; ps; w ../abc_double_rw_data/rw_double_aig_random_control/rw_double_router.aig".
+
+elapse: 0.47 seconds, total: 0.47 seconds
+elapse: 3.87 seconds, total: 4.34 seconds
+[1;37m../double_data/double_aig_random_control/double_router:[0m i/o =61440/30720  lat =    0  and = 260096  lev = 44
+ABC command line: "r ../double_data/double_aig_random_control/double_voter.aig; time; rw -lz; time; ps; w ../abc_double_rw_data/rw_double_aig_random_control/rw_double_voter.aig".
+
+elapse: 21.61 seconds, total: 21.61 seconds
+elapse: 300.07 seconds, total: 321.68 seconds
+[1;37m../double_data/double_aig_random_control/double_voter:[0m i/o =1025024/ 1024  lat =    0  and =11698176  lev = 66

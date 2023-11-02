@@ -1,0 +1,200 @@
+nohup: ignoring input
+processId: 582083
+>> Dynamic heap size changed to: 2048.00 MB
+Enhanced with GPU-based algorithm implementations, 
+by the Chinese University of Hong Kong
+ABC command line: "read ../data/MtM/twentythree.aig; gget; time; grw; grw; time; gput; ps; write ../novel_double_rw_data/rw_MtM/rw_twentythree.aig".
+
+elapse: 123.40 seconds, total: 123.40 seconds
+ *** Topo sort time: 0.26 sec
+GPUSolver: setting cudaLimitStackSize = 12288
+GPU memory usage: used = 4573.187500, free = 19644.125000 MB, total = 24217.312500 MB
+GPU memory usage: used = 5645.187500, free = 18572.125000 MB, total = 24217.312500 MB
+GPU memory usage: used = 6269.187500, free = 17948.125000 MB, total = 24217.312500 MB
+GPU memory usage: used = 11255.187500, free = 12962.125000 MB, total = 24217.312500 MB
+[125.034] Rewrite Iteration
+0 in EvaluateNode 
+[125.790] Finished GPU enumeration and pre-evaluation
+[126.129] Replacing sub-graphs
+0 after replace 
+N = 34831073   n = 23339890   n * RATIO = 53681746
+before rebuild, nn = 23339890
+after rebuild, n = 33818090
+successfully replaced 3657360 cones (pos 3657360, zero 0), reverted 364362 cones, compromised 5043417 cones, pre-eval rejected 14260084 cones, small cut reject 0 cones, new idx reject 0 cones
+after replace, n = 33818090
+[127.889] Finished eval and replace
+ *** Topo sort time: 0.63 sec
+[130.398] Rewrite Iteration Ends
+real reduction: 5573954
+** Total Time breakdown: ENUM 0.13, EVAL 0.48, REPLACE 2.10, REORDER 2.41, REDUNDANCY 0.56
+** Replace Time breakdown: COPYBACK 0.13, REID 0.53, CHOICE 1.05
+** CPU sequential time: 3.56 sec
+GPUSolver: setting cudaLimitStackSize = 1024
+after rewrite, n = 17765936
+ before deduplicate, nNodes = 17765783
+ after deduplicate, nNodes = 17765626, elapsed time = 2.59 sec
+rewrite: after rewrite, nNodes = 17765626
+rewrite: alg time 5.43, full time 9.56
+GPUSolver: setting cudaLimitStackSize = 12288
+GPU memory usage: used = 4229.187500, free = 19988.125000 MB, total = 24217.312500 MB
+GPU memory usage: used = 5045.187500, free = 19172.125000 MB, total = 24217.312500 MB
+GPU memory usage: used = 5521.187500, free = 18696.125000 MB, total = 24217.312500 MB
+GPU memory usage: used = 9317.187500, free = 14900.125000 MB, total = 24217.312500 MB
+[133.115] Rewrite Iteration
+0 in EvaluateNode 
+[133.812] Finished GPU enumeration and pre-evaluation
+[133.965] Replacing sub-graphs
+0 after replace 
+N = 18822917   n = 17765936   n * RATIO = 40861652
+before rebuild, nn = 17765936
+after rebuild, n = 18756691
+successfully replaced 337865 cones (pos 337865, zero 0), reverted 87202 cones, compromised 195356 cones, pre-eval rejected 17145185 cones, small cut reject 0 cones, new idx reject 0 cones
+after replace, n = 18756691
+[134.410] Finished eval and replace
+ *** Topo sort time: 0.22 sec
+[135.795] Rewrite Iteration Ends
+real reduction: 349050
+** Total Time breakdown: ENUM 0.26, EVAL 0.94, REPLACE 2.70, REORDER 3.09, REDUNDANCY 0.88
+** Replace Time breakdown: COPYBACK 0.23, REID 0.62, CHOICE 1.30
+** CPU sequential time: 3.24 sec
+GPUSolver: setting cudaLimitStackSize = 1024
+after rewrite, n = 17416886
+ before deduplicate, nNodes = 17416733
+ after deduplicate, nNodes = 17416733, elapsed time = 2.48 sec
+rewrite: after rewrite, nNodes = 17416733
+rewrite: alg time 2.73, full time 5.25
+elapse: 15.15 seconds, total: 138.55 seconds
+[1;37m../data/MtM/twentythree       :[0m i/o =  153/   68  lat =    0  and =17416733  lev =122
+Io_WriteAiger(): AIGER generation has failed because the allocated buffer is too small.
+>> Dynamic heap size changed to: 2048.00 MB
+Enhanced with GPU-based algorithm implementations, 
+by the Chinese University of Hong Kong
+ABC command line: "read ../data/MtM/twenty.aig; gget; time; grw; grw; time; gput; ps; write ../novel_double_rw_data/rw_MtM/rw_twenty.aig".
+
+elapse: 119.54 seconds, total: 119.54 seconds
+ *** Topo sort time: 0.23 sec
+GPUSolver: setting cudaLimitStackSize = 12288
+GPU memory usage: used = 4407.187500, free = 19810.125000 MB, total = 24217.312500 MB
+GPU memory usage: used = 5359.187500, free = 18858.125000 MB, total = 24217.312500 MB
+GPU memory usage: used = 5913.187500, free = 18304.125000 MB, total = 24217.312500 MB
+GPU memory usage: used = 10343.187500, free = 13874.125000 MB, total = 24217.312500 MB
+[121.029] Rewrite Iteration
+0 in EvaluateNode 
+[121.697] Finished GPU enumeration and pre-evaluation
+[121.999] Replacing sub-graphs
+0 after replace 
+N = 30925466   n = 20733030   n * RATIO = 47685969
+before rebuild, nn = 20733030
+after rebuild, n = 30034706
+successfully replaced 3257164 cones (pos 3257164, zero 0), reverted 330881 cones, compromised 4402489 cones, pre-eval rejected 12728685 cones, small cut reject 0 cones, new idx reject 0 cones
+after replace, n = 30034706
+[123.544] Finished eval and replace
+ *** Topo sort time: 0.55 sec
+[125.755] Rewrite Iteration Ends
+real reduction: 4900565
+** Total Time breakdown: ENUM 0.12, EVAL 0.42, REPLACE 1.85, REORDER 2.12, REDUNDANCY 0.50
+** Replace Time breakdown: COPYBACK 0.12, REID 0.47, CHOICE 0.92
+** CPU sequential time: 3.13 sec
+GPUSolver: setting cudaLimitStackSize = 1024
+after rewrite, n = 15832465
+ before deduplicate, nNodes = 15832328
+ after deduplicate, nNodes = 15832166, elapsed time = 2.19 sec
+rewrite: after rewrite, nNodes = 15832166
+rewrite: alg time 4.79, full time 8.58
+GPUSolver: setting cudaLimitStackSize = 12288
+GPU memory usage: used = 4119.187500, free = 20098.125000 MB, total = 24217.312500 MB
+GPU memory usage: used = 4847.187500, free = 19370.125000 MB, total = 24217.312500 MB
+GPU memory usage: used = 5271.187500, free = 18946.125000 MB, total = 24217.312500 MB
+GPU memory usage: used = 8655.187500, free = 15562.125000 MB, total = 24217.312500 MB
+[128.044] Rewrite Iteration
+0 in EvaluateNode 
+[128.661] Finished GPU enumeration and pre-evaluation
+[128.798] Replacing sub-graphs
+0 after replace 
+N = 16739129   n = 15832465   n * RATIO = 36414669
+before rebuild, nn = 15832465
+after rebuild, n = 16680260
+successfully replaced 294898 cones (pos 294898, zero 0), reverted 78835 cones, compromised 161715 cones, pre-eval rejected 15296707 cones, small cut reject 0 cones, new idx reject 0 cones
+after replace, n = 16680260
+[129.177] Finished eval and replace
+ *** Topo sort time: 0.21 sec
+[130.394] Rewrite Iteration Ends
+real reduction: 305048
+** Total Time breakdown: ENUM 0.23, EVAL 0.83, REPLACE 2.36, REORDER 2.71, REDUNDANCY 0.78
+** Replace Time breakdown: COPYBACK 0.18, REID 0.55, CHOICE 1.14
+** CPU sequential time: 2.85 sec
+GPUSolver: setting cudaLimitStackSize = 1024
+after rewrite, n = 15527417
+ before deduplicate, nNodes = 15527280
+ after deduplicate, nNodes = 15527280, elapsed time = 2.15 sec
+rewrite: after rewrite, nNodes = 15527280
+rewrite: alg time 2.40, full time 4.59
+elapse: 13.22 seconds, total: 132.76 seconds
+[1;37m../data/MtM/twenty            :[0m i/o =  137/   60  lat =    0  and =15527280  lev =109
+Io_WriteAiger(): AIGER generation has failed because the allocated buffer is too small.
+>> Dynamic heap size changed to: 2048.00 MB
+Enhanced with GPU-based algorithm implementations, 
+by the Chinese University of Hong Kong
+ABC command line: "read ../data/MtM/sixteen.aig; gget; time; grw; grw; time; gput; ps; write ../novel_double_rw_data/rw_MtM/rw_sixteen.aig".
+
+elapse: 95.57 seconds, total: 95.57 seconds
+ *** Topo sort time: 0.17 sec
+GPUSolver: setting cudaLimitStackSize = 12288
+GPU memory usage: used = 4141.187500, free = 20076.125000 MB, total = 24217.312500 MB
+GPU memory usage: used = 4885.187500, free = 19332.125000 MB, total = 24217.312500 MB
+GPU memory usage: used = 5319.187500, free = 18898.125000 MB, total = 24217.312500 MB
+GPU memory usage: used = 8785.187500, free = 15432.125000 MB, total = 24217.312500 MB
+[96.733] Rewrite Iteration
+0 in EvaluateNode 
+[97.252] Finished GPU enumeration and pre-evaluation
+[97.489] Replacing sub-graphs
+0 after replace 
+N = 24329812   n = 16216953   n * RATIO = 37298991
+before rebuild, nn = 16216953
+after rebuild, n = 23604806
+successfully replaced 2620342 cones (pos 2620342, zero 0), reverted 311401 cones, compromised 3312808 cones, pre-eval rejected 9960398 cones, small cut reject 0 cones, new idx reject 0 cones
+after replace, n = 23604806
+[98.759] Finished eval and replace
+ *** Topo sort time: 0.44 sec
+[100.573] Rewrite Iteration Ends
+real reduction: 3794043
+** Total Time breakdown: ENUM 0.09, EVAL 0.33, REPLACE 1.51, REORDER 1.70, REDUNDANCY 0.42
+** Replace Time breakdown: COPYBACK 0.09, REID 0.38, CHOICE 0.77
+** CPU sequential time: 2.59 sec
+GPUSolver: setting cudaLimitStackSize = 1024
+after rewrite, n = 12422910
+ before deduplicate, nNodes = 12422793
+ after deduplicate, nNodes = 12422631, elapsed time = 1.84 sec
+rewrite: after rewrite, nNodes = 12422631
+rewrite: alg time 3.90, full time 6.99
+GPUSolver: setting cudaLimitStackSize = 12288
+GPU memory usage: used = 3909.187500, free = 20308.125000 MB, total = 24217.312500 MB
+GPU memory usage: used = 4481.187500, free = 19736.125000 MB, total = 24217.312500 MB
+GPU memory usage: used = 4813.187500, free = 19404.125000 MB, total = 24217.312500 MB
+GPU memory usage: used = 7467.187500, free = 16750.125000 MB, total = 24217.312500 MB
+[102.493] Rewrite Iteration
+0 in EvaluateNode 
+[102.971] Finished GPU enumeration and pre-evaluation
+[103.078] Replacing sub-graphs
+0 after replace 
+N = 12981100   n = 12422910   n * RATIO = 28572692
+before rebuild, nn = 12422910
+after rebuild, n = 12942412
+successfully replaced 211198 cones (pos 211198, zero 0), reverted 56331 cones, compromised 78271 cones, pre-eval rejected 12076817 cones, small cut reject 0 cones, new idx reject 0 cones
+after replace, n = 12942412
+[103.355] Finished eval and replace
+ *** Topo sort time: 0.15 sec
+[104.299] Rewrite Iteration Ends
+real reduction: 217443
+** Total Time breakdown: ENUM 0.18, EVAL 0.64, REPLACE 1.89, REORDER 2.15, REDUNDANCY 0.64
+** Replace Time breakdown: COPYBACK 0.14, REID 0.43, CHOICE 0.93
+** CPU sequential time: 2.29 sec
+GPUSolver: setting cudaLimitStackSize = 1024
+after rewrite, n = 12205467
+ before deduplicate, nNodes = 12205350
+ after deduplicate, nNodes = 12205350, elapsed time = 1.81 sec
+rewrite: after rewrite, nNodes = 12205350
+rewrite: alg time 1.85, full time 3.69
+elapse: 10.71 seconds, total: 106.28 seconds
+[1;37m../data/MtM/sixteen           :[0m i/o =  117/   50  lat =    0  and =12205350  lev =104
+Io_WriteAiger(): AIGER generation has failed because the allocated buffer is too small.
