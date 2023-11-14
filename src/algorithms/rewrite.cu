@@ -21,6 +21,7 @@ using namespace rw;
 #define TABLE_SIZE 8
 #define LARGE_BLOCK_SIZE 512
 
+/// @param P 用于hash函数
 __managed__ int P;
 __managed__ int N; // # of graph nodes
 __managed__ int GPUexpected = 0;
@@ -49,7 +50,7 @@ ostream& print() {
 __device__ int CutFindValue(Cut *cut, int *nRef) {
     int value = 0, nOnes = 0;
     for(int i = 0; i < cut->nLeaves; i++) {
-        value += nRef[cut->leaves[i]];
+        value += nRef[cut->leaves[i]]; 
         nOnes += (nRef[cut->leaves[i]] == 1);
     }
     if(cut->nLeaves < 2) return 1001;
@@ -63,9 +64,9 @@ __device__ int CutFindValue(Cut *cut, int *nRef) {
 __global__ void Inputs(int *nRef, Cut *cuts, int n) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x + 1;
     if(idx <= n) {
-        Cut* cut = cuts + ID(idx, 0);
+        Cut* cut = cuts + ID(idx, 0); //第idx个节点cut集的第0个cut
         cut->used = 1;
-        cut->sign = 1 << (idx & 31);
+        cut->sign = 1 << (idx & 31); // idx mod 32
         cut->truthtable = 0xAAAA;
         cut->nLeaves = 1;
         cut->leaves[0] = idx;
@@ -81,15 +82,20 @@ __device__ int CountOnes(unsigned uWord) {
     return  (uWord & 0x0000FFFF) + (uWord>>16);
 }
 
+
+/// @brief  在cut集中找到合适位置
+/// @param idx 节点编号
+/// @param cuts cuts数组
+/// @return 当前节点cuts集中合适的下标
 __device__ int FindCut(int idx, Cut *cuts) {
     for(int i = 0; i < CUT_SET_SIZE; i++)
-        if(cuts[ID(idx, i)].used == 0) return i;
+        if(cuts[ID(idx, i)].used == 0) return i; // 若有空则直接返回该位置
     int ans = -1;
     for(int i = 0; i < CUT_SET_SIZE; i++)
         if(cuts[ID(idx, i)].nLeaves > 2) {
             if(ans == -1 || cuts[ID(idx, i)].value < cuts[ID(idx, ans)].value)
                 ans = i;
-        }
+        } // 在Cut节点数>=3的中寻找一个优先级最低的返回
     if(ans == -1) {
         for(int i = 0; i < CUT_SET_SIZE; i++)
             if(cuts[ID(idx, i)].nLeaves == 2) {
@@ -104,16 +110,21 @@ __device__ int FindCut(int idx, Cut *cuts) {
                     ans = i;
             }
     }
+    // 若没有节点数>=3的，则从节点数=2的中找，还没有再找=1的。
     cuts[ID(idx, ans)].used = 0;
     return ans;
 }
 
-// a.nLeaves >= b.nLeaves
+/// @brief 合并a,bcut生成新cut
+/// @param a 
+/// @param b 
+/// @param cut 
+/// @return 1:合并成功，0:a,b中元素未完全并入新cut，失败
 __device__ int MergeCutOrdered(Cut a, Cut b, Cut* cut) {
-    int c = 0, i = 0, k = 0;
+    int c = 0, i = 0, k = 0; //i跟踪a中插入个数， k跟踪b
     for (c = 0; c < 4; c++)
     {
-        if (k == b.nLeaves)
+        if (k == b.nLeaves)// b中节点均并入cut
         {
             if (i == a.nLeaves)
             {
@@ -123,9 +134,9 @@ __device__ int MergeCutOrdered(Cut a, Cut b, Cut* cut) {
             cut->leaves[c] = a.leaves[i++];
             continue;
         }
-        if (i == a.nLeaves)
+        if (i == a.nLeaves) // a中节点均并入cut
         {
-            if (k == b.nLeaves)
+            if (k == b.nLeaves) 
             {
                 cut->nLeaves = c;
                 return 1;
@@ -144,14 +155,19 @@ __device__ int MergeCutOrdered(Cut a, Cut b, Cut* cut) {
             continue;
         }
         cut->leaves[c] = a.leaves[i++];
-        k++;
+        k++; // 若两个元素相同
     }
     if (i < a.nLeaves || k < b.nLeaves)
-        return 0;
+        return 0; // a,b中元素未全部并入，插入失败
     cut->nLeaves = c;
     return 1;
 }
 
+/// @brief 对a,b两个cut取并集创造新cut插入cut所指位置
+/// @param a 
+/// @param b 
+/// @param cut Cut集中选择的cut地址
+/// @return 1：成功 0：失败
 __device__ int MergeCut(Cut a, Cut b, Cut *cut) {
     if(a.nLeaves >= b.nLeaves) {
         if(MergeCutOrdered(a, b, cut) == 0) return 0;
@@ -174,9 +190,12 @@ __device__ int CutDominance(Cut a, Cut b) {
     return 1;
 }
 
-//check if cut[id] is redundant, and filter out redundant cuts
+/*
+    @brief check if cut[id] is redundant, and filter out redundant cuts.
+    @return 1:新插入cut冗余 0:不冗余
+*/
 __device__ int CutFilter(Cut *cut, int id) {
-    for(int i = 0; i < CUT_SET_SIZE; i++) if(i != id && cut[i].used) {
+    for(int i = 0; i < CUT_SET_SIZE; i++) if(i != id && cut[i].used) { //在cut集合中遍历，若新插入cut是其中某cut子集则删除冗余cut
         if(cut[i].nLeaves > cut[id].nLeaves) {
             if((cut[i].sign & cut[id].sign) != cut[id].sign) continue;
             if(CutDominance(cut[id], cut[i]))
@@ -184,7 +203,7 @@ __device__ int CutFilter(Cut *cut, int id) {
         } else {
             if((cut[i].sign & cut[id].sign) != cut[i].sign) continue;
             if(CutDominance(cut[i], cut[id])) {
-                cut[id].used = 0;
+                cut[id].used = 0; //新插入的冗余，删除该cut
                 return 1;
             }
         }
@@ -220,6 +239,7 @@ __device__ int CutTruthStretch(int truthtable, int nVar, int phase) {
     return truthtable;
 }
 
+/// @brief 根据两个fanin的真值表得到当前cut的真值表
 __device__ int CutTruthtable(Cut cut, Cut a, Cut b, int aComplement, int bComplement) {
     int tt0 = aComplement ? ~a.truthtable : a.truthtable;
     int tt1 = bComplement ? ~b.truthtable : b.truthtable;
@@ -249,7 +269,7 @@ __device__ int MinimizeCutSupport(Cut* cut) {
     };
     int phase = 0, truth = cut->truthtable & 0xFFFF, nLeaves = cut->nLeaves;
     for(int i = 0; i < cut->nLeaves; i++)
-        if((truth & masks[i][0]) == ((truth & masks[i][1]) >> (1 << i)))
+        if((truth & masks[i][0]) == ((truth & masks[i][1]) >> (1 << i))) // 1 2 4 8
             nLeaves--;
         else
             phase |= 1 << i;
@@ -265,8 +285,19 @@ __device__ int MinimizeCutSupport(Cut* cut) {
     return 1;
 }
 
+
+/// @brief 对同一层节点并行枚举Cut
+/// @param fanin0 
+/// @param fanin1 
+/// @param isC0 
+/// @param isC1 
+/// @param nRef 
+/// @param cuts 
+/// @param delta 前面几层节点总数
+/// @param n 该层节点
+/// @return 
 __global__ void CutEnumerate(int *fanin0, int *fanin1, int* isC0, int *isC1, int *nRef, Cut *cuts, int delta, int n) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int idx = blockIdx.x * blockDim.x + threadIdx.x; //并行处理当前层节点
     if(idx < n) {
         idx += delta + 1;
         Cut* cut = cuts + ID(idx, 0);
@@ -277,12 +308,12 @@ __global__ void CutEnumerate(int *fanin0, int *fanin1, int* isC0, int *isC1, int
         cut->leaves[0] = idx;
         cut->value = CutFindValue(cut, nRef);
         int in0 = fanin0[idx], in1 = fanin1[idx];
-        for(int i = 0; i < CUT_SET_SIZE; i++) if(cuts[ID(in0, i)].used == 1)
+        for(int i = 0; i < CUT_SET_SIZE; i++) if(cuts[ID(in0, i)].used == 1) // 遍历两个fanin的所有Cut，取并集得到root的Cut
             for(int j = 0; j < CUT_SET_SIZE; j++) if(cuts[ID(in1, j)].used == 1) {
                 Cut a = cuts[ID(in0, i)], b = cuts[ID(in1, j)];
-                if(CountOnes(a.sign | b.sign) > 4) continue;
-                int cutId = FindCut(idx, cuts);
-                if(!MergeCut(a, b, cut + cutId)) continue;
+                if(CountOnes(a.sign | b.sign) > 4) continue; // 若合并后size>4则舍弃
+                int cutId = FindCut(idx, cuts); // 在cut集中找到合适位置
+                if(!MergeCut(a, b, cut + cutId)) continue; // 对a,b两个cut取并集创造新cut插入找到的cut位置中
                 if(CutFilter(cut, cutId)) continue;
                 cut[cutId].truthtable = 0xFFFF & CutTruthtable(cut[cutId], a, b, isC0[idx], isC1[idx]);
                 if(MinimizeCutSupport(cut + cutId))
@@ -447,6 +478,7 @@ __global__ void EvaluateNode(int sz, int *bestout, int *fanin0, int *fanin1, int
 }
 
 
+/// @brief 利用atomicCAS将节点插入hash表，用的是链式存储，val==id存储在P之后的位置，key在P之前链式保存
 __global__ void BuildHashTable(TableNode *hashTable, int sz, int *fanin0, int *fanin1, int *isC0, int *isC1) {
     int index = blockDim.x * blockIdx.x + threadIdx.x;
     if(index < sz) {
@@ -562,18 +594,23 @@ __global__ void DetachAndAttach(int sz, int *fanin0, int *fanin1, int *replace) 
     fanin1[id] = replace[id];
 }
 
+/// @brief  判断是否是素数
+/// @param n 
+/// @return 1:素数 0:else
 int IsPrime(int n) {
     for(int i = 2; i * i <= n; i++)
         if(n % i == 0) return 0;
     return 1;
 }
 
-int GetPrime(int n) {
+/// @brief 返回n开始下一个素数
+int GetPrime(int n) { 
     while(!IsPrime(n))
         n++;
     return n;
 }
 
+/// @brief  打印设备当前已使用/空闲/总 显存信息
 void ShowMemory() {
     size_t free_byte ;
 
@@ -605,12 +642,16 @@ __global__ void printCuts(int id, Cut *cuts) {
     }
 }
 
-
+/// @brief 将节点的编号转化回id，非门信息储存在isC数组中
+/// @param fanin 
+/// @param isC 
+/// @param n 
+/// @return 
 __global__ void Convert(int *fanin, int *isC, int n) {
     int id = blockIdx.x * blockDim.x + threadIdx.x;
     if(id < n) {
-        isC[id] = fanin[id] & 1;
-        fanin[id] >>= 1;
+        isC[id] = fanin[id] & 1; 
+        fanin[id] >>= 1; 
     }
 }
 
@@ -629,14 +670,16 @@ __global__ void print(int n, Cut *selected, int *bestOut) {
 
 
 
-
+/// @brief 重设线程堆栈限制大小，给每个变量分配cuda内存
+/// @param n 图中节点数(maybe)
 void GPUSolver::Init(int n) {
-    P = GetPrime(n + 1);
+    P = GetPrime(n + 1); //用于hash函数
     size_t limit = 0;
-    cudaDeviceGetLimit(&limit, cudaLimitStackSize);
+    cudaDeviceGetLimit(&limit, cudaLimitStackSize); //返回当前GPU每个线程的stack LimitSize -> limit
     cudaStackSize = limit;
     printf("GPUSolver: setting cudaLimitStackSize = %lu\n", limit * 12);
     cudaDeviceSetLimit(cudaLimitStackSize, limit * 12);
+    // *********  重设每个线程的limit堆栈大小为12倍  **********
     cudaMalloc(&fanin0, static_cast<int> (RATIO * (n + 1) * sizeof(int)));
     cudaMalloc(&fanin1, static_cast<int> (RATIO * (n + 1) * sizeof(int)));
     cudaMalloc(&nRef, (n + 1) * sizeof(int));
@@ -680,10 +723,20 @@ void GPUSolver::GetResults(int n, int *CPUbestSubgraph, Cut *CPUcuts) {
     cudaMemcpy(CPUcuts, selectedCuts, (n + 1) * sizeof(Cut), cudaMemcpyDeviceToHost);
 }
 
+/// @brief 将CPU的 pre-computed library转移到cuda内存中
+/// @param CPUlib CPU的预计算库
 void GPUSolver::CopyLib(Library CPUlib) {
     cudaMemcpy(lib, &CPUlib, sizeof(Library), cudaMemcpyHostToDevice);
 }
 
+/// @brief 完成C并行Cut枚举，Cut冗余消除以及将节点插入hash表
+/// @param level 每个结点高度
+/// @param levelCount 每层的节点个数
+/// @param n 节点数
+/// @param CPUfanin0 
+/// @param CPUfanin1 
+/// @param CPUref 每个结点fanout数量
+/// @param fUseZeros 
 void GPUSolver::EnumerateAndPreEvaluate(int *level, const vector<int> &levelCount, int n, int *CPUfanin0, int *CPUfanin1, int *CPUref, bool fUseZeros) {
     int * nodeLevels = phase; // note, phase has not been used yet, so use its memory for now
     cudaMemcpy(nodeLevels, level, (n + 1) * sizeof(int), cudaMemcpyHostToDevice);
@@ -695,16 +748,17 @@ void GPUSolver::EnumerateAndPreEvaluate(int *level, const vector<int> &levelCoun
     cudaMemset(hashTable, -1, sizeof(TableNode) * (2 * n + 1 + P));
     cudaMemset(cuts, 0, CUT_SET_SIZE * (n + 1) * sizeof(Cut));
     auto startTime = clock();
-    Convert<<<BLOCK_NUMBER(n + 1, LARGE_BLOCK_SIZE), LARGE_BLOCK_SIZE>>> (fanin0, isComplement0, (n + 1));
+    Convert<<<BLOCK_NUMBER(n + 1, LARGE_BLOCK_SIZE), LARGE_BLOCK_SIZE>>> (fanin0, isComplement0, (n + 1)); // n+1 * 512的线程网格， 512一维线程块
     Convert<<<BLOCK_NUMBER(n + 1, LARGE_BLOCK_SIZE), LARGE_BLOCK_SIZE>>> (fanin1, isComplement1, (n + 1));
-    Inputs<<<BLOCK_NUMBER(levelCount[0], LARGE_BLOCK_SIZE), LARGE_BLOCK_SIZE>>> (nRef, cuts, levelCount[0]);        
+    /*---------------------还要再看-------------------------*/
+    Inputs<<<BLOCK_NUMBER(levelCount[0], LARGE_BLOCK_SIZE), LARGE_BLOCK_SIZE>>> (nRef, cuts, levelCount[0]); // levelCount[0] = PIs个数  得到Inputs的Cut（就是自己）     
     for(int i = 1; i < levelCount.size(); i++)
         CutEnumerate<<<BLOCK_NUMBER(levelCount[i] - levelCount[i - 1], LARGE_BLOCK_SIZE), LARGE_BLOCK_SIZE>>> (fanin0, fanin1, isComplement0, isComplement1, nRef, cuts, levelCount[i - 1], levelCount[i] - levelCount[i - 1]);
-    cudaDeviceSynchronize();
+    cudaDeviceSynchronize(); // 多个线程异步进行，计算完成时需要进行同步
     ENUM_TIME += clock() - startTime;
     startTime = clock();
     BuildHashTable<<<BLOCK_NUMBER(n, LARGE_BLOCK_SIZE), LARGE_BLOCK_SIZE>>> (hashTable, n, fanin0, fanin1, isComplement0, isComplement1);           
-EvaluateNode<<<BLOCK_NUMBER(n, 768), 768>>> (n, bestSubgraph, fanin0, fanin1, isComplement0, isComplement1, nodeLevels, cuts, selectedCuts, nRef, lib, hashTable, fUseZeros == true);
+    EvaluateNode<<<BLOCK_NUMBER(n, 768), 768>>> (n, bestSubgraph, fanin0, fanin1, isComplement0, isComplement1, nodeLevels, cuts, selectedCuts, nRef, lib, hashTable, fUseZeros == true);
         gpuErrchk( cudaDeviceSynchronize() );
     std::cerr << cudaGetLastError() << " in EvaluateNode " << std::endl;
 
@@ -812,7 +866,7 @@ void CPUSolver::Rewrite(bool fUseZeros, bool GPUReplace) {
 
     prt << "Rewrite Iteration" << endl;
     ReadLibrary();
-    gpuSolver->CopyLib(lib);
+    gpuSolver->CopyLib(lib); 
     LevelCount();
     gpuSolver->EnumerateAndPreEvaluate(level, levelCount, n, fanin0, fanin1, ref, fUseZeros);
     prt << "Finished GPU enumeration and pre-evaluation" << endl;
@@ -1224,27 +1278,30 @@ void CPUSolver::RewriteWave(bool fUseZeros) {
     printf("End of rewrite wave, n = %d\n", n);
 }
 
+
+/// @brief 根据初始AIG图初始化isDeleted,ref以及phase
 void CPUSolver::Init() {
     for(int i = numInputs + 1; i <= n; i++) {
         if(fanin0[i] > fanin1[i]) swap(fanin0[i], fanin1[i]);
     }
-    memset(isDeleted, 0, sizeof(int) * (n + 1));
-    memset(ref, 0, sizeof(int) * (n + 1));
+    memset(isDeleted, 0, sizeof(int) * (n + 1)); //isDeleted表初始化为0
+    memset(ref, 0, sizeof(int) * (n + 1)); //各节点fanout数量初始化为0
     for(int i = numInputs + 1; i <= n; i++) {
-        ref[id(fanin0[i])]++;
+        ref[id(fanin0[i])]++; //得到每个节点fanout数量
         ref[id(fanin1[i])]++;
-        level[i] = max(level[id(fanin0[i])], level[id(fanin1[i])]) + 1;
+        level[i] = max(level[id(fanin0[i])], level[id(fanin1[i])]) + 1; // 得到每个结点高度
         phase[i] = (phase[id(fanin0[i])] ^ isC(fanin0[i])) & (phase[id(fanin1[i])] ^ isC(fanin1[i]));
     }
     for(int i = 0; i < numOutputs; i++)
         ref[id(output[i])]++;
 }
 
+/// @brief RW最先执行该函数，将节点拓扑排序并按拓扑序列重新编号
 void CPUSolver::Reorder() {
     auto startTime = clock();
 
     for(int i = 1; i <= n; i++)
-        level[i] = i <= numInputs ? 0 : -1;
+        level[i] = i <= numInputs ? 0 : -1; //PIsLevel初始=0，-1为未赋值
     auto startTime2 = clock();
     for(int i = numInputs + 1; i <= n; i++) 
         if(!isDeleted[i]) TopoSort(i);
@@ -1252,11 +1309,12 @@ void CPUSolver::Reorder() {
     LevelCount();
     int newN = levelCount.back();
     for(int i = n; i >= 1; i--)
-        if(!isDeleted[i]) order[i] = levelCount[level[i]]--;
+        if(!isDeleted[i]) order[i] = levelCount[level[i]]--; //得到拓扑序列保存于order
     for(int i = numInputs + 1; i <= n; i++) {
         temp0[i] = fanin0[i];
         temp1[i] = fanin1[i];
     }
+    // 按照拓扑序列重新给节点赋编号
     for(int i = numInputs + 1; i <= n; i++) if(!isDeleted[i]) {
         fanin0[order[i]] = order[id(temp0[i])] * 2 + isC(temp0[i]);
     }
@@ -1267,9 +1325,12 @@ void CPUSolver::Reorder() {
         output[i] = order[id(output[i])] * 2 + isC(output[i]);
     n = newN;
     REORDER_TIME += clock() - startTime;
+
+    // 拓扑排序后的图重新得到各个节点的信息
     Init();
 }
 
+/// @brief 初始化 pre-computed library
 void CPUSolver::ReadLibrary() {
     int cur = 0;		
     for(int i = 0; i < (1 << 16); i++)

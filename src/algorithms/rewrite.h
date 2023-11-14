@@ -3,10 +3,14 @@
 #include <string>
 #include "robin_hood.h"
 
+/// @brief 判断是否为奇数？AIGER中利用奇偶判断是否为非门
 #define isC(x) ((x) & 1)
 
 namespace rw {
 
+/// @param leaves 保存Cut中节点，其中节点编号升序排列
+/// @param nleaves 保存Cut中节点数量
+/// @param value Cut优先级(maybe)
 struct Cut {
     int sign, leaves[4];
     unsigned truthtable : 16;
@@ -34,6 +38,8 @@ inline int max(int a, int b) {
     return a > b ? a : b;
 }
 
+/// @brief x//2，得到结点真正的编码，AIGER中利用奇偶标记非门，所以节点编号为id*2 or id*2+1
+/// @param x 
 inline int id(int x) {
     return x >> 1;
 }
@@ -55,6 +61,8 @@ public:
     int ReplaceSubgraphs(int n, int *CPUfanin0, int *CPUfanin1, int *CPUphase, int *CPUreplace);
 
 private:
+    /// @param fanin 保存faninID
+    /// @param isComplement 保存fanin是否为非门
     int *fanin0, *fanin1, *isComplement0, *isComplement1, *nRef, *bestSubgraph;
     int *phase, *replace;
     TableNode *hashTable, *newTable;
@@ -160,9 +168,16 @@ public:
                    Eval(lib.fanin1[Class][cur - 4], Class, match);
     }
 
+    /// @brief 子节点插入图中时更新子节点的fanout数量
+    /// @param parent root
+    /// @param child child
     void AddFanout(int parent, int child) {
         ref[child]++;
     }
+
+    /// @brief 子节点的一个父节点被删除时更新子节点的fanout数量
+    /// @param parent root
+    /// @param child child
     void RemoveFanout(int parent, int child) {
         ref[child]--;
     }
@@ -174,6 +189,10 @@ public:
         table.erase(HashValue(in0, in1));
     }
 
+    /// @brief 构造AIG图结点，将in0,in1作为左右孩子连接到node，并计算level
+    /// @param node root
+    /// @param in0 child
+    /// @param in1 child
     void Connect(int node, int in0, int in1) {
         if(in0 > in1)
             swap(in0, in1);
@@ -286,16 +305,20 @@ public:
             level[i] = max(level[id(fanin0[i])], level[id(fanin1[i])]) + 1;
     }
 
+    /// @brief 得到以node为根的逻辑锥中各个结点的L(x)保存在level数组中
+    /// @param node 
+    /// @return 
     int TopoSort(int node) {
         if(level[node] != -1) return level[node];
         return level[node] = 1 + max(TopoSort(id(fanin0[node])), TopoSort(id(fanin1[node])));
     }
 
+    /// @brief 根据各结点level得到levelcount的值，最大深度保存于nLevels
     void LevelCount() {
         int maxLevel = 0;
         for(int i = 1; i <= n; i++)
-            if(!isDeleted[i]) maxLevel = max(maxLevel, level[i]);
-        levelCount = std::vector<int> (maxLevel + 1, 0);
+            if(!isDeleted[i]) maxLevel = max(maxLevel, level[i]); // 得到当前存在结点中的最大深度
+        levelCount = std::vector<int> (maxLevel + 1, 0); // 存储树中每层的结点数量
         for(int i = 1; i <= n; i++)
             if(!isDeleted[i]) levelCount[level[i]]++;
         for(int i = 1; i <= maxLevel; i++)
@@ -306,17 +329,26 @@ public:
 
     int expected = 0;
 
+    /// @param levelCount 存储树中每层的结点数量
     std::vector<int> levelCount;
 
+    /// @param n 图中总结点数(maybe)
     int n, numInputs, numOutputs, visCnt = 0;
     int nLevels = -1;
     const int MAX_NODE_NUM = 200000000;
+    /// @param isDeleted hash表优化
+    /// @param fanin0 int[MAX_NODE_NUM] 每个结点的一个fanin
+    /// @param fanin1 int[MAX_NODE_NUM] 每个结点的一个fanin
+    /// @param level int[MAX_NODE_NUM] 每个结点的Level，PIsLevel初始=0，-1为未赋值
+    /// @param ref int[MAX_NODE_NUM] 每个结点的fanout数量
+    /// @param order int[MAX_NODE_NUM] 每个结点的拓扑顺序
     int *fanin0, *fanin1, *ref, *phase, *level, *isDeleted, *bestOut, *order, *output, *temp0,  *temp1, *visMark;
     int created[1000];
 
     Cut *bestCut;
     robin_hood::unordered_map<unsigned long long, int> table;
     std::string names;
+    /// @param lib 保存于CPU的pre-computed library
     Library lib;
 
     GPUSolver *gpuSolver;

@@ -1,0 +1,122 @@
+import json
+import os
+import shutil
+import subprocess
+from config import *
+
+def doubleAig(dataPath):
+    # double AIG size
+    os.chdir('./build')
+    for dirs in os.listdir(dataPath):
+        if opt.mtm and dirs != 'MtM':
+            continue
+        if not opt.mtm and dirs == 'MtM':
+            break
+        targetPath = os.path.join('../','double_data','double_'+dirs)
+        if not os.path.exists(targetPath):
+            os.makedirs(targetPath)
+        for file in os.listdir(os.path.join(dataPath,dirs)):
+            doubleRound = 10
+            if file == 'hyp.aig':
+                doubleRound = 8
+            doublecmd = "double; " * doubleRound
+            filePath = os.path.join(dataPath,dirs,file)
+            targetFilePath = os.path.join(targetPath,"double_"+file)
+            os.system("./abcg -c \"read "+filePath+"; logic; "+doublecmd+"strash; ps; write "+targetFilePath+"\"")
+    os.chdir('../')
+
+class Command():
+    def __init__(self,path:str, opt):
+        self.mode = opt.mode
+        self.path = path
+        self.mtm = opt.mtm
+        self.src = opt.src
+        self.cmd = opt.cmd
+        os.chdir(self.path)
+
+    def getDataPath(self):
+        self.dataPath = ''
+        if self.mtm:
+            self.dataPath = os.path.join('../','MtM')
+        else:
+            if self.src == 'epfl':
+                if self.double:
+                    self.dataPath = os.path.join('../','double_data')
+                else:
+                    self.dataPath = os.path.join('../','data')
+            else:
+                self.dataPath = os.path.join('../','case')
+        print('read from: ' + self.dataPath)
+    
+    def getCmd(self, mode, cmd, filePath):
+        if mode == 'novel':
+            if cmd == 'rewrite':
+                return "./abcg -c \"read "+filePath+"; gget; time; grw; time; gput; ps; \""
+            elif cmd == 'balance':
+                return "./abcg -c \"read "+filePath+"; gget; time; gb; time; gput; ps; \""
+            elif cmd == 'refactor':
+                return "./abcg -c \"read "+filePath+"; gget; time; grf; time; gput; ps; \""
+            elif cmd == 'rf_resyn':
+                return "./abcg -c \"read "+filePath+"; gget; time; gb; grf; grf -z; gb; grf -z; gb; time; gput; ps; \""
+        else:
+            if cmd == 'rewrite':
+                return "./abc -c \"r "+filePath+"; time; drw ; time; ps; \""
+            elif cmd == 'balance':
+                return "./abc -c \"r "+filePath+"; time; balance ; time; ps; \""
+            elif cmd == 'refactor':
+                return "./abc -c \"r "+filePath+"; time; drf ; time; ps; \""
+            elif cmd == 'rf_resyn':
+                return "./abc -c \"r "+filePath+"; time; b; rf; rfz; b; rfz; b; time; ps; \""
+
+    def run(self):
+        for dirs in os.listdir(self.dataPath):
+            if self.src == 'mtm' or self.src == 'case':
+                targetPath = os.path.join('../',self.mode+'_'+self.cmd+'_data')
+            else:
+                targetPath = os.path.join('../',self.mode+'_'+self.cmd+'_data',self.cmd+'_'+dirs)
+            if not os.path.exists(targetPath):
+                os.makedirs(targetPath)
+            if self.mtm or self.src == 'case':
+                filePath = os.path.join(self.dataPath,dirs)
+                targetFilePath = os.path.join(targetPath,self.cmd+"_"+dirs)
+                cmdLine = self.getCmd(self.mode, self.cmd, filePath)
+                p=subprocess.Popen(cmdLine,shell=True)
+                code = p.wait()
+                continue
+            for file in os.listdir(os.path.join(self.dataPath,dirs)):
+                filePath = os.path.join(self.dataPath,dirs,file)
+                targetFilePath = os.path.join(targetPath,self.cmd+"_"+file)
+                cmdLine = self.getCmd(self.mode, self.cmd, filePath)
+                p=subprocess.Popen(cmdLine,shell=True)
+                code = p.wait()
+        os.chdir('../')
+
+
+# cec
+# os.chdir('/home/zhoulingfeng/pythonProgram/AIGRewrite/abc')
+# novelRwPath = '../novel_rw_data'
+# abcRwPath = '../abc_rw_data'
+# for dirs in os.listdir(novelRwPath):
+#     for files in os.listdir(os.path.join(novelRwPath,dirs)):
+#         abcFile = os.path.join(abcRwPath,dirs,files)
+#         novelFile = os.path.join(novelRwPath,dirs,files)
+#         os.system("./abc -c \"&cec "+abcFile+" " + novelFile + "\"")
+
+def main(opt):
+    os.chdir('/home/zhoulingfeng/pythonProgram/AIGRewrite')
+    # doubleAig('../data')
+    if opt.mode == 'novel':
+        path = os.path.join('./','build',)
+    else:
+        path = os.path.join('./','abc')
+    autoCmd = Command(path, opt)
+    autoCmd.getDataPath()
+    autoCmd.run()
+    
+
+if __name__ == "__main__":
+    print('processId:', os.getpid())
+    print('prarent processId:', os.getppid())
+    opt = get_opt()
+    print(json.dumps(opt.__dict__, indent=4))
+    main(opt)
