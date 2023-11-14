@@ -23,6 +23,7 @@ struct TableNode {
     int val, next;
 };
 
+/// @brief pre-computed library
 struct Library {
     int pPhases[1 << 16], pPerms[1 << 16], pPerms4[2 * 3 * 4][4], pMap[1 << 16];
     int nNodes[222], nSubgr[222], pSubgr[222][20], fanin0[222][60], fanin1[222][60], isC0[222][60], isC1[222][60];
@@ -63,6 +64,7 @@ public:
 private:
     /// @param fanin 保存faninID
     /// @param isComplement 保存fanin是否为非门
+    /// @param nRef 保存节点fanout数量
     int *fanin0, *fanin1, *isComplement0, *isComplement1, *nRef, *bestSubgraph;
     int *phase, *replace;
     TableNode *hashTable, *newTable;

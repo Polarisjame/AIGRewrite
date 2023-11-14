@@ -61,6 +61,7 @@ __device__ int CutFindValue(Cut *cut, int *nRef) {
     return value;
 }
 
+/// @brief 完成PIs的Cut选举(即本身)
 __global__ void Inputs(int *nRef, Cut *cuts, int n) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x + 1;
     if(idx <= n) {
@@ -729,7 +730,7 @@ void GPUSolver::CopyLib(Library CPUlib) {
     cudaMemcpy(lib, &CPUlib, sizeof(Library), cudaMemcpyHostToDevice);
 }
 
-/// @brief 完成C并行Cut枚举，Cut冗余消除以及将节点插入hash表
+/// @brief 完成并行Cut枚举，Cut冗余消除以及将节点插入hash表
 /// @param level 每个结点高度
 /// @param levelCount 每层的节点个数
 /// @param n 节点数
