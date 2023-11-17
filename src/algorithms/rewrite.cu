@@ -287,7 +287,7 @@ __device__ int MinimizeCutSupport(Cut* cut) {
 }
 
 
-/// @brief 对同一层节点并行枚举Cut
+/// @brief 对同一层节点并行枚举Cut，每个节点挑选CUT_SET_SIZE个优先级高的cut存储于GPUSolver->cuts中
 /// @param fanin0 
 /// @param fanin1 
 /// @param isC0 
@@ -325,10 +325,12 @@ __global__ void CutEnumerate(int *fanin0, int *fanin1, int* isC0, int *isC1, int
     }
 }
 
+/// @brief 对id号结点入MFFC操作
+/// @return 若有指向目前锥外的边，则暂时判断为边界，返回>0的值，否则返回0
 __device__ int Decrease(int id, int *tableSize, int *tableId, int *tableNum, int *nRef, Cut *cut) {
-    for(int i = 0; i < cut->nLeaves; i++)
+    for(int i = 0; i < cut->nLeaves; i++) //若是cut则已经到边界，直接返回1
         if(id == cut->leaves[i]) return 1;
-    for(int i = 0; i < tableSize[0]; i++)
+    for(int i = 0; i < tableSize[0]; i++) //表示此前递归已探索过该结点，即该节点另一个fanout也指向锥内，所以锥外fanout-1
         if(tableId[i] == id) return --tableNum[i];
     if(tableSize[0] == TABLE_SIZE) {
         //printf("Warning in Decrease\n");
@@ -340,7 +342,8 @@ __device__ int Decrease(int id, int *tableSize, int *tableId, int *tableNum, int
     return nRef[id] - 1;
 }
 
-
+/// @brief 
+/// @return 若id在MFFC中且不是边界返回1，否则返回0
 __device__ int IsDeleted(int id, int *tableSize, int *tableId, int *tableNum) {
     for(int i = 0; i < tableSize[0]; i++)
         if(tableId[i] == id) return tableNum[i] == 0;
@@ -348,15 +351,22 @@ __device__ int IsDeleted(int id, int *tableSize, int *tableId, int *tableNum) {
 }
 
 
+/// @brief 以root为根，cut为边界寻找MFFC
+/// @param tableSize 表中结点数量(包含MFFC中以及边界，不含cut)
+/// @param tableId 每个结点id
+/// @param tableNum 结点指向锥外的fanout数量(==0即表示在MFFC中)
+/// @return MFFC中的结点数量(不包含边界和cut)
 __device__ int CalcMFFC(int cur, Cut* cut, int *fanin0, int *fanin1, int *tableSize, int *tableId, int *tableNum, int *nRef, int root) {
     int ans = 1;
-    if(Decrease(fanin0[cur], tableSize, tableId, tableNum, nRef, cut) == 0)
+    if(Decrease(fanin0[cur], tableSize, tableId, tableNum, nRef, cut) == 0) //该fanin为锥内结点，继续递归
         ans += CalcMFFC(fanin0[cur], cut, fanin0, fanin1, tableSize, tableId, tableNum, nRef, root);
     if(Decrease(fanin1[cur], tableSize, tableId, tableNum, nRef, cut) == 0)
         ans += CalcMFFC(fanin1[cur], cut, fanin0, fanin1, tableSize, tableId, tableNum, nRef, root);
     return ans;
 }
 
+/// @brief 也是hash表插入，采用链式结构
+/// @return 
 __device__ void TableInsert(int in0, int in1, int C0, int C1, TableNode* hashTable, int idx, int offset=0) {
     int index = idx - offset - 1;
     unsigned long key = 0;
@@ -375,6 +385,8 @@ __device__ void TableInsert(int in0, int in1, int C0, int C1, TableNode* hashTab
     }
 }
 
+/// @brief Hash表查表操作
+/// @return 返回对应key的id，若不存在返回-1
 __device__ int TableLookup(int in0, int in1, int C0, int C1, TableNode* hashTable, int *fanin0, int *fanin1, int *isC0, int *isC1) {
     unsigned long key = 0;
     if(in0 > in1) {
@@ -406,28 +418,38 @@ __device__ int Eval(int cur, int *match, int Class, Library *lib, int curId) {
 }
 
 
-
+/// @brief 对节点并行替换子图进行Evaluate，其中子图是以Cut为边界的MFFC，以便后续并行替换
+/// @param sz 节点个数
+/// @param nodeLevels 各个节点层数
+/// @param cuts 枚举好的各节点cut
+/// @param nRef 各个节点fanout数量
+/// @param lib pre-coumputed library
+/// @param hashTable 构造好的节点hash表
+/// @param fUseZeros 是否即使收益为0也替换
+/// @return 每个结点最好的Cut保存在selectedCuts[id]，对应的子图id保存在bestout[id]
 __global__ void EvaluateNode(int sz, int *bestout, int *fanin0, int *fanin1, int *isC0, int *isC1, int *nodeLevels, Cut *cuts, Cut* selectedCuts, int *nRef, 
                              Library *lib, TableNode* hashTable, int fUseZeros) {
-    if(blockIdx.x * blockDim.x + threadIdx.x >= sz) return;
+    if(blockIdx.x * blockDim.x + threadIdx.x >= sz) return; //对id号节点进行Evaluate
     int id = 1 + blockIdx.x * blockDim.x + threadIdx.x, reduction = -1, bestLevel = 99999999, bestCut = -1, bestOut;
-    int match[54], tableSize, tableId[TABLE_SIZE], tableNum[TABLE_SIZE];
+    /* tableId - MFFC中每个结点id(包含MFFC中以及边界，不含cut)
+       tableNum - 结点指向锥外的fanout数量(==0即表示在MFFC中)*/
+    int match[54], tableSize, tableId[TABLE_SIZE], tableNum[TABLE_SIZE]; 
     int matchLevel[54];
-    for(int i = 0; i < CUT_SET_SIZE; i++) {
+    for(int i = 0; i < CUT_SET_SIZE; i++) { //对该节点每个cut遍历
         Cut *cut = cuts + ID(id, i);
         if(cut->used == 0 || cut->nLeaves < 3) continue;
         int nleaves = cut->nLeaves;
         if(nleaves == 3)
             cut->leaves[cut->nLeaves++] = 0;
         tableSize = 0;
-        int saved = CalcMFFC(id, cut, fanin0, fanin1, &tableSize, tableId, tableNum, nRef, id);
+        int saved = CalcMFFC(id, cut, fanin0, fanin1, &tableSize, tableId, tableNum, nRef, id); //得到old graph的结点数
         int uPhase = lib->pPhases[cut->truthtable];
         int Class = lib->pMap[cut->truthtable];
         int *pPerm = lib->pPerms4[lib->pPerms[cut->truthtable]];
         for(int j = 0; j < 54; j++)
             match[j] = matchLevel[j] = -1;
 	      uint64_t isC = 0;
-        for(int j = 0; j < 4; j++) {
+        for(int j = 0; j < 4; j++) { //不太了解
             match[j] = cut->leaves[pPerm[j]];
             matchLevel[j] = nodeLevels[match[j]];
             if(uPhase >> j & 1)
@@ -438,7 +460,6 @@ __global__ void EvaluateNode(int sz, int *bestout, int *fanin0, int *fanin1, int
             int in0 = lib->fanin0[Class][j], in1 = lib->fanin1[Class][j];
             assert(matchLevel[in0] != -1 && matchLevel[in1] != -1);
             matchLevel[num] = 1 + (matchLevel[in0] > matchLevel[in1] ? matchLevel[in0] : matchLevel[in1]);
-
             if(match[in0] == -1 || match[in1] == -1 || match[in0] == id || match[in1] == id) continue;
             int nodeId = TableLookup(match[in0], match[in1], (isC >> in0 & 1) ^ lib->isC0[Class][j], (isC >> in1 & 1) ^ lib->isC1[Class][j], hashTable, fanin0, fanin1, isC0, isC1);
             if(nodeId != -1 && !IsDeleted(nodeId, &tableSize, tableId, tableNum)) {
@@ -449,7 +470,7 @@ __global__ void EvaluateNode(int sz, int *bestout, int *fanin0, int *fanin1, int
         for(int out = 0; out < lib->nSubgr[Class]; out++) {
             int rt = lib->pSubgr[Class][out];
             if(match[rt] == id) continue;
-            int nodesAdded = Eval(rt, match, Class, lib, -out - 2);
+            int nodesAdded = Eval(rt, match, Class, lib, -out - 2); //得到new graph的结点数
             int rtLevel = matchLevel[rt];
             assert(rtLevel != -1);
             // if(saved - nodesAdded > reduction || (fUseZeros && saved == nodesAdded && bestCut == -1)) {
@@ -458,14 +479,15 @@ __global__ void EvaluateNode(int sz, int *bestout, int *fanin0, int *fanin1, int
             //     bestCut = i;
             //     bestOut = out;
             // }
-            if (saved - nodesAdded < 0 || (saved - nodesAdded == 0 && !fUseZeros))
+            if (saved - nodesAdded < 0 || (saved - nodesAdded == 0 && !fUseZeros)) //计算收益
                 continue;
             if (saved - nodesAdded < reduction || (saved - nodesAdded == reduction && rtLevel >= bestLevel))
                 continue;
+            //记录最好的收益,level,cut-graph
             reduction = saved - nodesAdded;
             bestLevel = rtLevel;
             bestCut = i;
-            bestOut = out;
+            bestOut = out; 
         }
         cut->nLeaves = nleaves;
     }
@@ -503,6 +525,8 @@ __global__ void BuildHashTable(TableNode *hashTable, int sz, int *fanin0, int *f
 
 }
 
+/// @brief 递归建造以cur为根的结点，保存在newTable的哈希表中
+/// @return 
 __device__ void BuildSubgr(int cur, int Class, Library *lib, int *match, uint64_t isC, int *fanin0, int *fanin1, int *isC0, int *isC1, int *phase, TableNode* newTable, int sz) {
     // only create the node that has no correspondence in original table, or not created by this thread (in this subgraph)
     if (match[cur] != -1) return;
@@ -512,7 +536,8 @@ __device__ void BuildSubgr(int cur, int Class, Library *lib, int *match, uint64_
     BuildSubgr(in1, Class, lib, match, isC, fanin0, fanin1, isC0, isC1, phase, newTable, sz);
 
     // Build the node
-    int node = atomicAdd(&N, 1);
+    // atomicAdd(*old,value) return *old; *old = *old+value
+    int node = atomicAdd(&N, 1); 
     // assert(node < (int) (sz * RATIO));
     node += 1;
     fanin0[node] = match[in0];
@@ -541,6 +566,8 @@ __device__ void BuildSubgr(int cur, int Class, Library *lib, int *match, uint64_
     }
 }
 
+/// @brief 并行替换子图，因为是在MFFC的范围，所以不会有结点竞争的问题
+/// @return 
 __global__ void ReplaceSubgr(int sz, int *bestout, int *fanin0, int *fanin1, int *isC0, int *isC1, Cut *selectedCuts, Library *lib, TableNode* hashTable, TableNode* newTable, int *phase, int *replace) {
     if(blockIdx.x * blockDim.x + threadIdx.x >= sz) return;
     //if (N >= (int) sz * RATIO) printf("Warning: too many new nodes to handle...\n");
@@ -564,7 +591,7 @@ __global__ void ReplaceSubgr(int sz, int *bestout, int *fanin0, int *fanin1, int
         if(uPhase >> j & 1)
         	  isC |= 1LL << j;
     }
-    int rt = lib->pSubgr[Class][bestout[id]];
+    int rt = lib->pSubgr[Class][bestout[id]]; //得到计算库中的最优子图
 	  uint64_t used = 1LL << rt;
     for(int j = rt; j >= 4; j--) if(used >> j & 1) {
 	      used |= 1LL << lib->fanin0[Class][j - 4];
@@ -656,6 +683,7 @@ __global__ void Convert(int *fanin, int *isC, int n) {
     }
 }
 
+/// @brief 将节点的id转化回编号，即Convert的逆操作
 __global__ void Revert(int *fanin, int *isC, int n) {
     int id = blockIdx.x * blockDim.x + threadIdx.x;
     if(id <= n) {
@@ -719,6 +747,7 @@ void GPUSolver::Free() {
     cudaDeviceSetLimit(cudaLimitStackSize, cudaStackSize);
 }
 
+/// @brief 将GPU中存储的最优Cut-Subgraph对写回CPU
 void GPUSolver::GetResults(int n, int *CPUbestSubgraph, Cut *CPUcuts) {
     cudaMemcpy(CPUbestSubgraph, bestSubgraph, (n + 1) * sizeof(int), cudaMemcpyDeviceToHost);
     cudaMemcpy(CPUcuts, selectedCuts, (n + 1) * sizeof(Cut), cudaMemcpyDeviceToHost);
@@ -766,6 +795,8 @@ void GPUSolver::EnumerateAndPreEvaluate(int *level, const vector<int> &levelCoun
     EVAL_TIME += clock() - startTime;
 } 
 
+/// @brief 并行替换子图
+/// @return 
 int GPUSolver::ReplaceSubgraphs(int n, int *CPUfanin0, int *CPUfanin1, int *CPUphase, int *CPUreplace) {
     prt << "Replacing sub-graphs" << endl;
     cudaMemcpy(phase, CPUphase, (n + 1) * sizeof(int), cudaMemcpyHostToDevice);
@@ -829,7 +860,7 @@ void Message(string s) {
 
 
 
-
+/// @brief 创建初始AIG图
 void CPUSolver::Reset(int nInputs, int nOutputs, int nTotal, 
                       const int * pFanin0, const int * pFanin1, const int * pOuts) {
     // this should be called when the previous command is not rewrite

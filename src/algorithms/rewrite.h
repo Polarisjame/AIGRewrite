@@ -65,9 +65,11 @@ private:
     /// @param fanin 保存faninID
     /// @param isComplement 保存fanin是否为非门
     /// @param nRef 保存节点fanout数量
+    /// @param bestSubgraph Evaluate后最优的Cut-Subgraph中的子图id保存在bestSubgraph[id]
     int *fanin0, *fanin1, *isComplement0, *isComplement1, *nRef, *bestSubgraph;
     int *phase, *replace;
     TableNode *hashTable, *newTable;
+    /// @param selectedCuts Evaluate后最优的Cut-Subgraph中的Cut保存在selectedCuts[id]中
     Cut *cuts, *selectedCuts;
     Library *lib;
 
