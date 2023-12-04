@@ -437,6 +437,8 @@ __device__ __forceinline__ ValueT retrieve_single(const KeyT * ht_keys, const Va
     }
 }
 
+/// @brief 哈希表的插入
+/// @return 2：成功插入 else：表中已有该key
 template <typename KeyT, typename ValueT>
 __device__ __forceinline__ uint32 insert_single_no_update(KeyT * ht_keys, ValueT * ht_values, 
                                         const KeyT key, const ValueT value, const int capacity) {
@@ -454,7 +456,7 @@ __device__ __forceinline__ uint32 insert_single_no_update(KeyT * ht_keys, ValueT
             return ht_values[loc];
         }
 
-        loc = (loc + 1) % capacity;
+        loc = (loc + 1) % capacity; //线性探测法
     }
 }
 

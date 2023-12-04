@@ -4,15 +4,15 @@
 #include <ctime>
 #include <tuple>
 #include <functional>
+#include "aig_manager.h"
+#include "common.h"
+#include "hash_table.h"
+#include "refactor.h"
 #include <thrust/scan.h>
 #include <thrust/sequence.h>
 #include <thrust/copy.h>
 #include <thrust/tuple.h>
 #include <thrust/iterator/zip_iterator.h>
-#include "common.h"
-#include "aig_manager.h"
-#include "hash_table.h"
-#include "refactor.h"
 #include "aig/truth.cuh"
 #include "aig/strash.cuh"
 #include "algorithms/sop/sop.cuh"
@@ -27,6 +27,10 @@ struct isNotSmallMffc {
     }
 };
 
+/// @brief 将待检查结点判断并插入当前根的逻辑锥的cut中
+/// @param rootId 逻辑锥的根
+/// @param nodeId 待检查结点
+/// @return 0:插入成功且不是边界 -100：插入失败，cutsize超出限制 else:当前结点对外fanout数量，暂时作为边界
 __device__ int decrementRef(int rootId, int nodeId, int nPIs, int nMaxCutSize, int nMinLevel,
                             const int * pNumFanouts, const int * pLevels, 
                             int * vCutTable, int * vCutSizes, 
@@ -62,19 +66,24 @@ __device__ int decrementRef(int rootId, int nodeId, int nPIs, int nMaxCutSize, i
     return pNumFanouts[nodeId] - 1;
 }
 
+/// @brief 得到每个结点为根的MFFC
+/// @param vCutTable 得到每个节点MFFC的边界
+/// @param vCutSizes 每个结点MFFC边界大小
+/// @param vConeSizes 每个结点MFFC大小
+/// @param nMaxCutSize 规定最大的边界大小
 __global__ void getMffcCut(const int * pFanin0, const int * pFanin1, 
                            const int * pNumFanouts, const int * pLevels, 
                            int * vCutTable, int * vCutSizes, int * vConeSizes,
                            int nNodes, int nPIs, int nMaxCutSize) {
     // TODO for hyp, there are some nodes whose MFFC is not the same as ABC
-    int nThreads = gridDim.x * blockDim.x;
+    int nThreads = gridDim.x * blockDim.x; //统计线程数
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     int stack[STACK_SIZE], travIds[STACK_SIZE], travRefs[STACK_SIZE];
     int stackTop, travSize, coneSize;
     int nodeId, rootId, faninId, nMinLevel;
     int fDecRet;
 
-    for (; idx < nNodes; idx += nThreads) {
+    for (; idx < nNodes; idx += nThreads) { //将idx结点作为root得到该结点为根的MFFC
         stackTop = -1, travSize = 0, coneSize = 0;
 
         rootId = idx + nPIs + 1;
@@ -84,7 +93,7 @@ __global__ void getMffcCut(const int * pFanin0, const int * pFanin1,
         // printf("rootId = %d\n", rootId);
         // printf("  minLv: %d\n", nMinLevel);
 
-        while (stackTop != -1) {
+        while (stackTop != -1) { //遍历节点的fanins逐个入栈并判断是否加入MFFC
             nodeId = stack[stackTop--];
             coneSize++;
             // printf("  %d \n", nodeId);
@@ -98,7 +107,7 @@ __global__ void getMffcCut(const int * pFanin0, const int * pFanin1,
             // printf("    checked fanin %d\n", faninId);
             if (fDecRet == -100)
                 break;             // cut size reached maximum
-            else if (fDecRet == 0)
+            else if (fDecRet == 0) // 当前的结点符合MFFC条件且不是边界，则入栈
                 stack[++stackTop] = faninId;
             assert(stackTop < STACK_SIZE);
 
@@ -118,6 +127,7 @@ __global__ void getMffcCut(const int * pFanin0, const int * pFanin1,
         }
 
         if (vCutSizes[rootId] != -1) {
+            // 遍历完成后外部fanout仍大于0的节点也是边界
             // add all nodes in the trav list with ref > 0 into the cut list
             for (int i = 0; i < travSize; i++) {
                 assert(travRefs[i] >= 0);
@@ -1038,8 +1048,9 @@ refactorPerform(bool fUseZeros, int cutSize,
         vResynInd,
         isNotSmallMffc()
     );
+    // 若判断i号MFFC不是SmallMFFC则vIdxSeq数据拷贝到vResynInd (就是记录isNotSmallMFFC的编号)
     cudaDeviceSynchronize();
-    int nResyn = pResynIndEnd - vResynInd;
+    int nResyn = pResynIndEnd - vResynInd; //符号条件的MFFC数量
     printf("Num to resyn: %d\n", nResyn);
     if (nResyn == 0) {
         cudaFree(vCutTable);
@@ -1051,7 +1062,7 @@ refactorPerform(bool fUseZeros, int cutSize,
     }
 
     // gather node with too large mffc cuts
-    cudaMalloc(&vReconvInd, nResyn * sizeof(int));
+    cudaMalloc(&vReconvInd, nResyn * sizeof(int)); //收集CutSize过大的节点编号
     int * pReconvIndEnd = thrust::copy_if(
         thrust::device, 
         vIdxSeq + nPIs + 1, vIdxSeq + nObjs, 
@@ -1092,7 +1103,7 @@ refactorPerform(bool fUseZeros, int cutSize,
         vResynInd, vCutSizes, vTruthRanges, nResyn);
     gpuErrchk( cudaPeekAtLastError() );
     gpuErrchk( cudaDeviceSynchronize() );
-    thrust::inclusive_scan(thrust::device, vTruthRanges, vTruthRanges + nResyn, vTruthRanges);
+    thrust::inclusive_scan(thrust::device, vTruthRanges, vTruthRanges + nResyn, vTruthRanges); //对vTruthRanges中的值累加保存到原位置
     cudaDeviceSynchronize();
 
     int nTruthTableLen = -1;
@@ -1116,6 +1127,7 @@ refactorPerform(bool fUseZeros, int cutSize,
         d_pFanin0, d_pFanin1, vNumSaved, vResynInd, vCutTable, vCutSizes, 
         vTruth, vTruthRanges, vTruthElem, nResyn, nPIs, cutSize
     );
+    // 得到每个MFFC的真值表保存在vTruth
     gpuErrchk( cudaPeekAtLastError() );
     gpuErrchk( cudaDeviceSynchronize() );
     printf("Computed cut truth tables\n");
@@ -1124,7 +1136,7 @@ refactorPerform(bool fUseZeros, int cutSize,
     // build hashtable of the original aig
 
     HashTable<uint64, uint32> hashTable((int)(nObjs / HT_LOAD_FACTOR));
-    uint64 * htKeys = hashTable.get_keys_storage();
+    uint64 * htKeys = hashTable.get_keys_storage(); //初始全为UINT_MAX表示空
     uint32 * htValues = hashTable.get_values_storage();
     int htCapacity = hashTable.get_capacity();
 
@@ -1248,14 +1260,15 @@ refactorPerform(bool fUseZeros, int cutSize,
     return {nObjsNew, vhFanin0New, vhFanin1New, vhOutsNew, nLevelsNew};
 }
 
+/// @brief 初始化level数组，存储各节点level大小
 void updateLevel(int * pLevel, int * pFanin0, int * pFanin1, int nObjs, int nPIs) {
     size_t fanin0Idx, fanin1Idx;
     
     for (int i = 0; i <= nPIs; i++)
         pLevel[i] = 0;
     for (int i = nPIs + 1; i < nObjs; i++) {
-        fanin0Idx = (size_t)(pFanin0[i] >> 1);
-        fanin1Idx = (size_t)(pFanin1[i] >> 1);
+        fanin0Idx = (size_t)(pFanin0[i] >> 1); //编号->id
+        fanin1Idx = (size_t)(pFanin1[i] >> 1); //编号->id
         assert(fanin0Idx < i && fanin1Idx < i);
 
         pLevel[i] = 1 + max(pLevel[fanin0Idx], pLevel[fanin1Idx]);
@@ -1283,7 +1296,7 @@ void AIGMan::refactor(bool fAlgMFFC, bool fUseZeros, int cutSize) {
         return;
     }
 
-clock_t startFullTime = clock();
+    clock_t startFullTime = clock();
 
     // make sure data is on host since we need to compute level info
     if (deviceAllocated) {

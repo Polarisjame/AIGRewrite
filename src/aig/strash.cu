@@ -25,8 +25,8 @@ __global__ void Aig::buildHashTable(const int * pFanin0, const int * pFanin1,
         lit0 = pFanin0[id], lit1 = pFanin1[id];
         if (lit0 > lit1)
             temp = lit0, lit0 = lit1, lit1 = temp;
-        uint64 key = formAndNodeKey(lit0, lit1);
-        insert_single_no_update<uint64, uint32>(htKeys, htValues, key, id, htCapacity);
+        uint64 key = formAndNodeKey(lit0, lit1); //得到该结点的key
+        insert_single_no_update<uint64, uint32>(htKeys, htValues, key, id, htCapacity); //将结点插入哈希表
     }
 }
 

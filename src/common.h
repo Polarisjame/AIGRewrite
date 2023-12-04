@@ -156,6 +156,7 @@ struct sameNodeID {
 };
 
 template <typename T>
+// 判断是否是结点(不是PIs)
 struct isNodeLit {
     const int nPIs;
 

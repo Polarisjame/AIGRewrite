@@ -734,12 +734,16 @@ refactorMFFCPerform(bool fUseZeros, int cutSize,
     cudaMemset(vNumSaved, -1, nObjs * sizeof(int));
 
     // precompute a consecutive indices array for gathering uses
-    thrust::sequence(thrust::device, vNodesIndices, vNodesIndices + nObjs);
+    thrust::sequence(thrust::device, vNodesIndices, vNodesIndices + nObjs); // sequence:生成内容为0,1,2...的数组
+    //vNodesIndices赋值为0,1,2...的数组，长度nObjs
 
     // generate the initial vRoots
     pNewGlobalListEnd = thrust::copy_if(thrust::device, d_pOuts, d_pOuts + nPOs, 
                                         vRoots, dUtils::isNodeLit<int>(nPIs));
-    currLen = pNewGlobalListEnd - vRoots;
+    // namespace dUtils: common.h
+    //将d_pOuts:d_pOuts + nPOs 的内容复制到 vRoots 开始的地址(不是PIs的值)，返回vRoots+n
+
+    currLen = pNewGlobalListEnd - vRoots; 
     if (currLen == 0)
         return {-1, NULL, NULL, NULL, -1};
     printf("Gathered %d POs\n", currLen);
