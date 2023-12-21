@@ -1,5 +1,0 @@
-source -s abc.rc
-cec i2crw.aig
-cec i2c.aig
-r i2c.aig
-r ./i2c.aig

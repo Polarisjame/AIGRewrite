@@ -1,6 +1,5 @@
-# CULS
-CULS is a GPU-based logic synthesis tool developed by the research team 
-supervised by Prof. Evangeline F. Y. Young at The Chinese University of Hong Kong (CUHK).
+# RethinkingAIG
+a GPU-based logic synthesis tool developed by [CULS](https://github.com/cuhk-eda/CULS) 
 
 ## Dependencies
 * CMake >= 3.8
@@ -71,25 +70,15 @@ supervised by Prof. Evangeline F. Y. Young at The Chinese University of Hong Kon
     AIG data structure from ABC to GPU, and from GPU to ABC, respectively,
     similar to the ABC9 package. 
 
-## References
-```bibtex
-@inproceedings{lin2022novelrewrite,
-  title={NovelRewrite: node-level parallel AIG rewriting},
-  author={Lin, Shiju and Liu, Jinwei and Liu, Tianji and Wong, Martin D. F. and Young, Evangeline F. Y.},
-  booktitle={Proceedings of the 59th ACM/IEEE Design Automation Conference},
-  year={2022}
-}
+## byShell
+to deal with multiple AIGs, run
+```bash
+cd pyCommand
+sh runNovel.sh
+```
+original data are stored under ../data and use func doubleAig in autoCmd.py to double it.
+more info run
+```bash
+python autoCmd.py -h
 ```
 
-```bibtex
-@inproceedings{liu2023rethinking,
-  title={Rethinking AIG Resynthesis in Parallel},
-  author={Liu, Tianji and Young, Evangeline F. Y.},
-  booktitle={60th ACM/IEEE Design Automation Conference},
-  year={2023}
-}
-```
-
-## Authors
-* [Shiju Lin](https://shijulin.github.io/) and [Jinwei Liu](https://anticold.github.io/), for GPU rewriting.
-* [Tianji Liu](https://tefantasy.github.io/), for the other algorithms.
