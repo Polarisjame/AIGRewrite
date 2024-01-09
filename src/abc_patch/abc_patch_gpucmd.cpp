@@ -217,6 +217,18 @@ int Abc_CommandGpuGet(Abc_Frame_t * pAbc, int argc, char ** argv) {
     return ret ? 0 : 1;
 }
 
+void ResubExecute(Abc_Frame_t * pAbc, int K, int N) {
+    std::string cmd = "resub";
+
+    if(K>0)
+        cmd += " -K " + std::to_string(K);
+    if(N>0)
+        cmd += " -N " + std::to_string(N);
+
+    const char* cmdChar = cmd.data();
+    Cmd_CommandExecute(pAbc, cmdChar);
+}
+
 int Abc_CommandGpuPut(Abc_Frame_t * pAbc, int argc, char ** argv) {
     if (!checkGpuManState())
         return 1;
@@ -245,6 +257,7 @@ void registerAllAbcCommands(Abc_Frame_t * pAbc) {
     Cmd_CommandAdd(pAbc, "GPU", "grf", Abc_CommandGpuRefactor, 0);
     Cmd_CommandAdd(pAbc, "GPU", "gst", Abc_CommandGpuStrash, 0);
     Cmd_CommandAdd(pAbc, "GPU", "gresyn2", Abc_CommandGpuResyn2, 0);
+    Cmd_CommandAdd(pAbc, "GPU", "gresub", Abc_CommandCpuResub, 0);
 
     Cmd_CommandAdd(pAbc, "GPU", "gget", Abc_CommandGpuGet, 0);
     Cmd_CommandAdd(pAbc, "GPU", "gput", Abc_CommandGpuPut, 0);

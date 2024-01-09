@@ -1,0 +1,3 @@
+source -s abc.rc
+read /home/zhoulingfeng/EDAProject/AIGRewrite/caseV2aiger/add.aig
+refactor

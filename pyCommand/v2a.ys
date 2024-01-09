@@ -1,0 +1,76 @@
+read_verilog /home/zhoulingfeng/EDAProject/AIGRewrite/caseV/add.v
+aigmap
+write_aiger /home/zhoulingfeng/EDAProject/AIGRewrite/caseV2aiger/add.aig
+read_verilog /home/zhoulingfeng/EDAProject/AIGRewrite/caseV/adder16.v
+hierarchy -top adder
+aigmap
+write_aiger /home/zhoulingfeng/EDAProject/AIGRewrite/caseV2aiger/adder16.aig
+read_verilog /home/zhoulingfeng/EDAProject/AIGRewrite/caseV/adder_subtr_8_bits.v
+aigmap
+write_aiger /home/zhoulingfeng/EDAProject/AIGRewrite/caseV2aiger/adder_subtr_8_bits.aig
+read_verilog /home/zhoulingfeng/EDAProject/AIGRewrite/caseV/add_jl.v
+aigmap
+write_aiger /home/zhoulingfeng/EDAProject/AIGRewrite/caseV2aiger/add_jl.aig
+read_verilog /home/zhoulingfeng/EDAProject/AIGRewrite/caseV/AOI.v
+aigmap
+write_aiger /home/zhoulingfeng/EDAProject/AIGRewrite/caseV2aiger/AOI.aig
+read_verilog /home/zhoulingfeng/EDAProject/AIGRewrite/caseV/buried_ff.v
+aigmap
+write_aiger /home/zhoulingfeng/EDAProject/AIGRewrite/caseV2aiger/buried_ff.aig
+read_verilog /home/zhoulingfeng/EDAProject/AIGRewrite/caseV/checker1.v
+aigmap
+write_aiger /home/zhoulingfeng/EDAProject/AIGRewrite/caseV2aiger/checker1.aig
+read_verilog /home/zhoulingfeng/EDAProject/AIGRewrite/caseV/code_83.v
+aigmap
+write_aiger /home/zhoulingfeng/EDAProject/AIGRewrite/caseV2aiger/code_83.aig
+read_verilog /home/zhoulingfeng/EDAProject/AIGRewrite/caseV/add_ahead.v
+aigmap
+write_aiger /home/zhoulingfeng/EDAProject/AIGRewrite/caseV2aiger/add_ahead.aig
+read_verilog /home/zhoulingfeng/EDAProject/AIGRewrite/caseV/alutask.v
+aigmap
+write_aiger /home/zhoulingfeng/EDAProject/AIGRewrite/caseV2aiger/alutask.aig
+read_verilog /home/zhoulingfeng/EDAProject/AIGRewrite/caseV/decode4_7.v
+aigmap
+write_aiger /home/zhoulingfeng/EDAProject/AIGRewrite/caseV2aiger/decode4_7.aig
+read_verilog /home/zhoulingfeng/EDAProject/AIGRewrite/caseV/float_adder.v
+aigmap
+write_aiger /home/zhoulingfeng/EDAProject/AIGRewrite/caseV2aiger/float_adder.aig
+read_verilog /home/zhoulingfeng/EDAProject/AIGRewrite/caseV/modulo.v
+aigmap
+write_aiger /home/zhoulingfeng/EDAProject/AIGRewrite/caseV2aiger/modulo.aig
+read_verilog /home/zhoulingfeng/EDAProject/AIGRewrite/caseV/mpc.v
+aigmap
+write_aiger /home/zhoulingfeng/EDAProject/AIGRewrite/caseV2aiger/mpc.aig
+read_verilog /home/zhoulingfeng/EDAProject/AIGRewrite/caseV/mult_for.v
+aigmap
+write_aiger /home/zhoulingfeng/EDAProject/AIGRewrite/caseV2aiger/mult_for.aig
+read_verilog /home/zhoulingfeng/EDAProject/AIGRewrite/caseV/mult_repeat.v
+aigmap
+write_aiger /home/zhoulingfeng/EDAProject/AIGRewrite/caseV2aiger/mult_repeat.aig
+read_verilog /home/zhoulingfeng/EDAProject/AIGRewrite/caseV/mux2_1a.v
+aigmap
+write_aiger /home/zhoulingfeng/EDAProject/AIGRewrite/caseV2aiger/mux2_1a.aig
+read_verilog /home/zhoulingfeng/EDAProject/AIGRewrite/caseV/mux4_1b.v
+aigmap
+write_aiger /home/zhoulingfeng/EDAProject/AIGRewrite/caseV2aiger/mux4_1b.aig
+read_verilog /home/zhoulingfeng/EDAProject/AIGRewrite/caseV/mux4_1c.v
+aigmap
+write_aiger /home/zhoulingfeng/EDAProject/AIGRewrite/caseV2aiger/mux4_1c.aig
+read_verilog /home/zhoulingfeng/EDAProject/AIGRewrite/caseV/mux4_1d.v
+aigmap
+write_aiger /home/zhoulingfeng/EDAProject/AIGRewrite/caseV2aiger/mux4_1d.aig
+read_verilog /home/zhoulingfeng/EDAProject/AIGRewrite/caseV/mux_casez.v
+aigmap
+write_aiger /home/zhoulingfeng/EDAProject/AIGRewrite/caseV2aiger/mux_casez.aig
+read_verilog /home/zhoulingfeng/EDAProject/AIGRewrite/caseV/sklansky_add.v
+aigmap
+write_aiger /home/zhoulingfeng/EDAProject/AIGRewrite/caseV2aiger/sklansky_add.aig
+read_verilog /home/zhoulingfeng/EDAProject/AIGRewrite/caseV/sort_task.v
+aigmap
+write_aiger /home/zhoulingfeng/EDAProject/AIGRewrite/caseV2aiger/sort_task.aig
+read_verilog /home/zhoulingfeng/EDAProject/AIGRewrite/caseV/sub.v
+aigmap
+write_aiger /home/zhoulingfeng/EDAProject/AIGRewrite/caseV2aiger/sub.aig
+read_verilog /home/zhoulingfeng/EDAProject/AIGRewrite/caseV/voter7.v
+aigmap
+write_aiger /home/zhoulingfeng/EDAProject/AIGRewrite/caseV2aiger/voter7.aig
