@@ -9,4 +9,8 @@ build*/
 test_cuda*
 .cache/
 case*
-*.txt
+log*
+result*
+*data
+*data_s
+MtM
