@@ -8,3 +8,4 @@ build*/
 *.blif
 test_cuda*
 .cache/
+case*
