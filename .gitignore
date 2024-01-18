@@ -9,3 +9,4 @@ build*/
 test_cuda*
 .cache/
 case*
+*.txt
