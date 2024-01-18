@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.8.0)
 
 set(CMAKE_CXX_COMPILER "/usr/bin/g++")
 set(CMAKE_C_COMPILER "/usr/bin/gcc")
+# set(PATCH_ABC 1)
 
 include(CheckCCompilerFlag)
 include(CheckCXXCompilerFlag)

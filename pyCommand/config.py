@@ -19,7 +19,7 @@ def get_opt():
     parser.add_argument('--mtm', type=int) # 0/1
     parser.add_argument('--double', type=int) # 0/1
     parser.add_argument('--cmd', type=str) # rewrite/refactor/balance/rfresyn/resyn2
-    parser.add_argument('--act', type=str) # syn/cec/verilog
+    parser.add_argument('--act', help="syn: do logic optimization/cec: do CEC check/verilog: do verilog2AIG", type=str) # syn/cec/verilog
     parser.add_argument('--trw', type=int) # 0/1
     parser.add_argument('--trf', type=int) # 0/1
 

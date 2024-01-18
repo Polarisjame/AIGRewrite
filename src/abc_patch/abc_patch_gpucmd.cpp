@@ -217,18 +217,6 @@ int Abc_CommandGpuGet(Abc_Frame_t * pAbc, int argc, char ** argv) {
     return ret ? 0 : 1;
 }
 
-void ResubExecute(Abc_Frame_t * pAbc, int K, int N) {
-    std::string cmd = "resub";
-
-    if(K>0)
-        cmd += " -K " + std::to_string(K);
-    if(N>0)
-        cmd += " -N " + std::to_string(N);
-
-    const char* cmdChar = cmd.data();
-    Cmd_CommandExecute(pAbc, cmdChar);
-}
-
 int Abc_CommandGpuPut(Abc_Frame_t * pAbc, int argc, char ** argv) {
     if (!checkGpuManState())
         return 1;
@@ -240,6 +228,117 @@ int Abc_CommandGpuPut(Abc_Frame_t * pAbc, int argc, char ** argv) {
     gpuManSetInactive();
     pMan->setAigCreated(0);
     pMan->setPrevCmdRewrite(0);
+
+    return 0;
+}
+
+void ResubExecute(Abc_Frame_t * pAbc, int K, int N) {
+    std::string cmd = "resub";
+
+    if(K>0)
+        cmd += " -K " + std::to_string(K);
+    if(N>0)
+        cmd += " -N " + std::to_string(N);
+
+    const char* cmdChar = cmd.data();
+    printf("Executing Resub \n");
+    Cmd_CommandExecute(pAbc, cmdChar);
+}
+
+int Abc_CommandGpuResub(Abc_Frame_t * pAbc, int argc, char ** argv){
+    std::string cmd = "resub";
+    int K=-1,N=-1;
+
+    CLI::App parser("Perform CPU Resub");
+    parser.add_option("-K", K, 
+        descWithDefault("maximum cut size used in resub", K));
+    parser.add_option("-N", N, 
+        descWithDefault("the max number of nodes to add", N));
+    
+    if (!parseOptions(parser, argc, argv))
+        return 1;
+
+    if(K>0)
+        cmd += " -K " + std::to_string(K);
+    if(N>0)
+        cmd += " -N " + std::to_string(N);
+
+    const char* cmdChar = cmd.data();
+    printf("Executing Resub \n");
+    Cmd_CommandExecute(pAbc, cmdChar);
+
+    return 0;
+}
+
+int Abc_CommandGpuCompress2(Abc_Frame_t * pAbc, int argc, char ** argv){
+    // CLI::App parser("Perform GPU resyn2");
+    int cutSize = 12;
+
+    CLI::App parser("Perform GPU compress2");
+    parser.add_option("-K", cutSize, 
+        descWithDefault("maximum cut size used in refactoring", cutSize));
+    
+    if (!parseOptions(parser, argc, argv) || !checkGpuManState())
+        return 1;
+
+    AIGMan * pMan = getGpuMan();
+    
+    pMan->balance(1);
+    pMan->rewrite(false, true);
+    pMan->refactor(true, false, cutSize);
+    pMan->strash(false, true);
+    pMan->balance(1);
+    pMan->rewrite(false, true);
+    pMan->rewrite(true, true);
+    // pMan->rewrite(true, true);
+    pMan->balance(1);
+    pMan->refactor(true, true, cutSize);
+    pMan->strash(false, true);
+    // pMan->rewrite(true, true);
+    pMan->rewrite(true, true);
+    pMan->balance(1);
+
+    return 0;
+}
+
+int Abc_CommandGpuCompress2rs(Abc_Frame_t * pAbc, int argc, char ** argv){
+    // CLI::App parser("Perform GPU resyn2");
+    int cutSize = 12;
+
+    CLI::App parser("Perform GPU compress2rs");
+    parser.add_option("-K", cutSize, 
+        descWithDefault("maximum cut size used in refactoring", cutSize));
+    
+    if (!parseOptions(parser, argc, argv) || !checkGpuManState())
+        return 1;
+
+    AIGMan * pMan = getGpuMan();
+    
+    pMan->balance(1);
+    Abc_CommandGpuPut(pAbc, argc, argv);
+    ResubExecute(pAbc, 6, -1);
+    Abc_CommandGpuGet(pAbc, argc, argv);
+    pMan->rewrite(false, true);
+    Abc_CommandGpuPut(pAbc, argc, argv);
+    ResubExecute(pAbc, 6, 2);
+    Abc_CommandGpuGet(pAbc, argc, argv);
+    pMan->refactor(true, false, cutSize);
+    Abc_CommandGpuPut(pAbc, argc, argv);
+    ResubExecute(pAbc, 8, -1);
+    Abc_CommandGpuGet(pAbc, argc, argv);
+    pMan->balance(1);
+    Abc_CommandGpuPut(pAbc, argc, argv);
+    ResubExecute(pAbc, 8, 2);
+    Abc_CommandGpuGet(pAbc, argc, argv);
+    pMan->rewrite(false, true);
+    Abc_CommandGpuPut(pAbc, argc, argv);
+    ResubExecute(pAbc, 10, -1);
+    Abc_CommandGpuGet(pAbc, argc, argv);
+    pMan->rewrite(true, true);
+    Abc_CommandGpuPut(pAbc, argc, argv);
+    ResubExecute(pAbc, 10, 2);
+    Abc_CommandGpuGet(pAbc, argc, argv);
+    pMan->strash(false, true);
 
     return 0;
 }
@@ -257,7 +356,9 @@ void registerAllAbcCommands(Abc_Frame_t * pAbc) {
     Cmd_CommandAdd(pAbc, "GPU", "grf", Abc_CommandGpuRefactor, 0);
     Cmd_CommandAdd(pAbc, "GPU", "gst", Abc_CommandGpuStrash, 0);
     Cmd_CommandAdd(pAbc, "GPU", "gresyn2", Abc_CommandGpuResyn2, 0);
-    Cmd_CommandAdd(pAbc, "GPU", "gresub", Abc_CommandCpuResub, 0);
+    Cmd_CommandAdd(pAbc, "GPU", "gresub", Abc_CommandGpuResub, 0);
+    Cmd_CommandAdd(pAbc, "GPU", "gcompress2", Abc_CommandGpuCompress2, 0);
+    Cmd_CommandAdd(pAbc, "GPU", "gcompress2rs", Abc_CommandGpuCompress2rs, 0);
 
     Cmd_CommandAdd(pAbc, "GPU", "gget", Abc_CommandGpuGet, 0);
     Cmd_CommandAdd(pAbc, "GPU", "gput", Abc_CommandGpuPut, 0);
