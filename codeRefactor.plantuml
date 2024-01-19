@@ -1,0 +1,58 @@
+@startuml Refactor
+title Refactor
+
+class AIGMan{
+    bool deviceAllocated
+    note "Host:主机端(CPU) Device:GPU"
+---
+    void toHost()
+    void clearDevice()
+    void toDevice()
+    void refactor()
+}
+
+interface refactor{
+    bool deviceAllocated
+    ---
+    void AIGMan::toHost() 若数据仍在GPU上先转移到CPU，因为要在CPU上更新Level
+    void AIGMan::clearDevice()
+    void updateLevel() 初始化level数组，存储各节点level大小
+    void AIGMan::toDevice()
+    ---
+    void refactorMFFCPerform()
+    void refactorPerform()
+}
+
+interface refactorPerform{
+    int nResyn 规模足够大的MFFC数量
+    int[] vResynInd 保存上述MFFC
+    int nReconv Cut过大的MFFC数量
+    int[] vReconvInd 保存上述MFFC
+
+    void getMffcCut() 得到每个结点为根的MFFC
+    void thrust::sequence() sequence:生成内容为0,1,2...的数组
+    void thrust::copy_if() 若判断i号MFFC不是SmallMFFC则vIdxSeq数据拷贝到vResynInd (就是记录isNotSmallMFFC的编号)
+    void getReconvCut() 在Cut过大的MFFC中去除冗余Cut
+
+
+}
+
+interface getMffcCut{
+    int stack
+    int StackStereotypeFontColor
+    int[] vCutTable 得到每个节点MFFC的边界
+    int decrementRef() 将待检查结点判断并插入当前根的逻辑锥的cut中
+
+}
+
+interface getReconvCut{
+    int visited, visitedSize
+    int getReconvCutIter() 
+}
+
+AIGMan <|.. refactor
+refactor <|.. refactorPerform
+refactorPerform <|.. getMffcCut
+refactorPerform <|.. getReconvCut
+
+@enduml

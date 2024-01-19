@@ -1,6 +1,10 @@
 # RethinkingAIG
 a GPU-based logic synthesis tool developed by [CULS](https://github.com/cuhk-eda/CULS) 
 
+---
+>update:
+2024/1/19: 整合了ABC的compress2，compress2rs综合流注册到PATCH_ABC模式中
+
 ## Dependencies
 * CMake >= 3.8
 * GCC >= 7.5.0
