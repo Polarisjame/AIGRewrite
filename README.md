@@ -11,6 +11,10 @@ a GPU-based logic synthesis tool developed by [CULS](https://github.com/cuhk-eda
 * CUDA >= 11.4
 
 ## Building
+* clone ABC project
+    ```bash
+    git clone [abc address]
+    ```
 * Build as a standalone tool:
     ```bash
     mkdir build && cd build
