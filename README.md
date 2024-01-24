@@ -11,9 +11,13 @@ a GPU-based logic synthesis tool developed by [CULS](https://github.com/cuhk-eda
 * CUDA >= 11.4
 
 ## build ABC mode with Docker
+* Requirement
+  * docker
+  * docker-nvidia
+
 You can build ABC mode with AIG-GPU container
 ```bash
-docker run -it -w /usr/Project/AIGRewrite polarisjame/ubuntu-cuda:AIG-GPU
+docker run -it --gpus [num of GPUs wanna use] -w /usr/Project/AIGRewrite polarisjame/ubuntu-cuda:AIG-GPU
 ```
 or build the Project by following steps
 
