@@ -4,6 +4,8 @@ a GPU-based logic synthesis tool developed by [CULS](https://github.com/cuhk-eda
 ---
 >update:
 2024/1/19: 整合了ABC的compress2，compress2rs综合流注册到PATCH_ABC模式中
+2024/1/24: PATCH_ABC环境打包到docker镜像上传远端仓库
+2024/1/25: plantuml绘制几个算法的类图
 
 ## Dependencies
 * CMake >= 3.8
@@ -13,7 +15,7 @@ a GPU-based logic synthesis tool developed by [CULS](https://github.com/cuhk-eda
 ## build ABC mode with Docker
 * Requirement
   * docker
-  * docker-nvidia
+  * nvidia-docker
 
 You can build ABC mode with AIG-GPU container
 ```bash

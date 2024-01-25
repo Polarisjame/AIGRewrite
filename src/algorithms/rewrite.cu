@@ -45,7 +45,11 @@ ostream& print() {
 }
 #define prt print()
 
-
+template<typename T>
+__device__ T gmax(T a, T b){
+    if(a >= b) return a;
+    else return b;
+}
 
 __device__ int CutFindValue(Cut *cut, int *nRef) {
     int value = 0, nOnes = 0;
@@ -365,16 +369,16 @@ __device__ int CalcMFFC(int cur, Cut* cut, int *fanin0, int *fanin1, int *tableS
     return ans;
 }
 
-// __device__ int getMFFCLevel(int cur, Cut* cut, int *fanin0, int *fanin1, int *tableSize, int *tableId, int *tableNum, int *nRef, int root) {
-//     int level, levelL=-1, levelR=-1;
-//     if(Decrease(fanin0[cur], tableSize, tableId, tableNum, nRef, cut) == 0) //该fanin为锥内结点，继续递归
-//         levelL = getMFFCLevel(fanin0[cur], cut, fanin0, fanin1, tableSize, tableId, tableNum, nRef, root);
-//     if(Decrease(fanin1[cur], tableSize, tableId, tableNum, nRef, cut) == 0)
-//         levelR = getMFFCLevel(fanin1[cur], cut, fanin0, fanin1, tableSize, tableId, tableNum, nRef, root);
-//     if (levelL == -1 && levelR == -1) return 1;
-//     level = std::max(levelL, levelR) + 1;
-//     return level;
-// }
+__device__ int getMFFCLevel(int cur, Cut* cut, int *fanin0, int *fanin1, int *tableSize, int *tableId, int *tableNum, int *nRef, int root) {
+    int level, levelL=-1, levelR=-1;
+    if(Decrease(fanin0[cur], tableSize, tableId, tableNum, nRef, cut) == 0) //该fanin为锥内结点，继续递归
+        levelL = getMFFCLevel(fanin0[cur], cut, fanin0, fanin1, tableSize, tableId, tableNum, nRef, root);
+    if(Decrease(fanin1[cur], tableSize, tableId, tableNum, nRef, cut) == 0)
+        levelR = getMFFCLevel(fanin1[cur], cut, fanin0, fanin1, tableSize, tableId, tableNum, nRef, root);
+    if (levelL == -1 && levelR == -1) return 1;
+    level = gmax(levelL, levelR) + 1;
+    return level;
+}
 
 
 /// @brief 也是hash表插入，采用链式结构
