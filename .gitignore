@@ -11,8 +11,11 @@ test_cuda*
 case*
 log*
 result*
-*data
+double*
+novel*
+abc*
 *data_s
 MtM
 *.zip
 bTest
+*.history
