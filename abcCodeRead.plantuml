@@ -1,0 +1,58 @@
+@startuml abcRead
+title abcRead
+
+package mainint.h{
+    struct Abc_Frame_t_{
+    // general info
+    char *          sVersion;      // the name of the current version
+    char *          sBinary;       // the name of the binary running
+    // the functionality
+    Abc_Ntk_t *     pNtkCur;       // the current network
+    Abc_Ntk_t *     pNtkBestDelay; // the current network
+    Abc_Ntk_t *     pNtkBestArea;  // the current network
+    Abc_Ntk_t *     pNtkBackup;    // the current network
+    }
+}
+
+package abc.h{
+    struct Abc_Ntk_t{
+        Abc_NtkType_t     ntkType;       // type of the network
+        Abc_NtkFunc_t     ntkFunc;       // functionality of the network
+        char *            pName;         // the network name
+    }
+}
+
+package ioReadAiger.c{
+    interface Io_ReadAiger{
+            char * pContents
+            int nTotal, nInputs, nOutputs, nLatches, nAnds;
+            Extra_FileSize()  //Returns the file size
+            Abc_Ntk_t * Abc_NtkAlloc( Abc_NtkType_t Type, Abc_NtkFunc_t Func, int fUseMemMan ) //创建新网络
+            Vec_PtrAlloc()
+            Vec_PtrPush()
+            Abc_Obj_t * Abc_NtkCreateObj( Abc_Ntk_t * pNtk, Abc_ObjType_t Type ) //Adds the node to the network.
+            
+    }
+}
+
+package ioUtil.c{
+    interface Io_Read implements Io_ReadNetlist{
+        Abc_Ntk_t * Io_ReadNetlist( char * pFileName, Io_FileType_t FileType, int fCheck )
+    }
+
+    interface Io_ReadNetlist implements Io_ReadAiger{
+        Io_FileType_t FileType
+        Abc_Ntk_t * Io_ReadAiger( char * pFileName, int fCheck )
+    }
+}
+
+package io.c{
+    interface IoCommandRead implements Io_Read{
+        Abc_Frame_t * pAbc CPU总体数据结构
+        Abc_Ntk_t * pNtk 从Frame中得到网络数据结构
+        Abc_Ntk_t *Io_Read(char * pFileName, Io_FileType_t FileType, int fCheck, int fBarBufs)
+        Io_FileType_t Io_ReadFileType( char * pFileName )
+    }
+}
+
+@enduml
