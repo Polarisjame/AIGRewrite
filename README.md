@@ -3,9 +3,9 @@ a GPU-based logic synthesis tool developed by [CULS](https://github.com/cuhk-eda
 
 ---
 >update:
-2024/1/19: 整合了ABC的compress2，compress2rs综合流注册到PATCH_ABC模式中
-2024/1/24: PATCH_ABC环境打包到docker镜像上传远端仓库
-2024/1/25: plantuml绘制几个算法的类图
+2024/1/19: 整合了ABC的compress2，compress2rs综合流注册到PATCH_ABC模式中 <br>
+2024/1/24: PATCH_ABC环境打包到docker镜像上传远端仓库 <br>
+2024/1/25: plantuml绘制几个算法的类图 <br>
 2024/1/26: abc read命令源码阅读+注释+plantuml
 
 ## Dependencies
