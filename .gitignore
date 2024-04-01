@@ -5,6 +5,7 @@ build*/
 *.log
 *.csv
 *.aig
+*.v
 *.blif
 test_cuda*
 .cache/
@@ -13,9 +14,10 @@ log*
 result*
 double*
 novel*
-abc*
+abc_*
 *data_s
 MtM
 *.zip
 bTest
 *.history
+data*
