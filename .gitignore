@@ -17,5 +17,6 @@ abc_*
 *data_s
 MtM
 *.zip
-bTest
+bTest*
 *.history
+data*

@@ -1,4 +1,0 @@
-/home/zhoulingfeng/EDAProject/AIGRewrite/bTest/CMakeFiles/libabc.dir
-/home/zhoulingfeng/EDAProject/AIGRewrite/bTest/CMakeFiles/abcg.dir
-/home/zhoulingfeng/EDAProject/AIGRewrite/bTest/CMakeFiles/edit_cache.dir
-/home/zhoulingfeng/EDAProject/AIGRewrite/bTest/CMakeFiles/rebuild_cache.dir
