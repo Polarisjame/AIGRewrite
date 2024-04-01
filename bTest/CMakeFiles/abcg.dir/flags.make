@@ -6,7 +6,7 @@
 # compile CXX with /usr/bin/g++
 C_DEFINES = -DPATCH_ABC
 
-C_INCLUDES = -I/home/zhoulingfeng/EDAProject/AIGRewrite/src -I/home/zhoulingfeng/EDAProject/AIGRewrite/src/hash_table -I/home/zhoulingfeng/EDAProject/AIGRewrite/include -I/home/zhoulingfeng/EDAProject/AIGRewrite/abc/src
+C_INCLUDES = -I/home/zhoulingfeng/EDAProject/AIGRewrite/src -I/home/zhoulingfeng/EDAProject/AIGRewrite/src/hash_table -I/home/zhoulingfeng/EDAProject/AIGRewrite/abc/src
 
 C_FLAGS = -Wall -Wno-unused-function -Wno-write-strings -Wno-sign-compare -DLIN64 -DSIZEOF_VOID_P=8 -DSIZEOF_LONG=8 -DSIZEOF_INT=4 -DABC_USE_CUDD=1 -DABC_USE_READLINE -I/usr/include -DABC_USE_PTHREADS -Wno-unused-but-set-variable
 
@@ -18,7 +18,7 @@ CUDA_FLAGS = -std=c++17 -DLIN64 -DSIZEOF_VOID_P=8 -DSIZEOF_LONG=8 -DSIZEOF_INT=4
 
 CXX_DEFINES = -DPATCH_ABC
 
-CXX_INCLUDES = -I/home/zhoulingfeng/EDAProject/AIGRewrite/src -I/home/zhoulingfeng/EDAProject/AIGRewrite/src/hash_table -I/home/zhoulingfeng/EDAProject/AIGRewrite/include -I/home/zhoulingfeng/EDAProject/AIGRewrite/abc/src
+CXX_INCLUDES = -I/home/zhoulingfeng/EDAProject/AIGRewrite/src -I/home/zhoulingfeng/EDAProject/AIGRewrite/src/hash_table -I/home/zhoulingfeng/EDAProject/AIGRewrite/abc/src
 
 CXX_FLAGS = -std=gnu++17 -Wall -Wno-unused-function -Wno-write-strings -Wno-sign-compare -DLIN64 -DSIZEOF_VOID_P=8 -DSIZEOF_LONG=8 -DSIZEOF_INT=4 -DABC_USE_CUDD=1 -DABC_USE_READLINE -I/usr/include -DABC_USE_PTHREADS -Wno-unused-but-set-variable
 

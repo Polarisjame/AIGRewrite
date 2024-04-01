@@ -24,7 +24,7 @@ void gpuManSetInactive() {
 
 void showPatchInfo() {
     printf("Enhanced with GPU-based algorithm implementations, \n");
-    printf("by the Chinese University of Hong Kong\n");
+    // printf("by the Chinese University of Hong Kong\n");
 }
 
 // called during ABC startup
