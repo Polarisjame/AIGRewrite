@@ -4,6 +4,18 @@
 
 namespace Aig {
 
+/**
+ * @brief 
+ * 
+ * @tparam CUT_TABLE_NUM_COLS 
+ * @tparam STACK_SIZE 
+ * @tparam useHashtable 
+ * @param    rootId              MFFC根节点ID
+ * @param    vCutTable           存储每个结点MFFC边界结点
+ * @param    vCutSizes           存储每个结点MFFC边界大小
+ * @param    travIds             存储遍历过的结点
+ * @param    travRefs            存储遍历过结点中未遍历的fanout数量
+ */
 template <int CUT_TABLE_NUM_COLS, int STACK_SIZE, bool useHashtable = false>
 __device__ __forceinline__ int findReconvMFFCCut_iter(const int rootId,
                                                       const int * pFanin0, const int * pFanin1, 
@@ -36,7 +48,7 @@ __device__ __forceinline__ int findReconvMFFCCut_iter(const int rootId,
         assert(nodeRef != (HASHTABLE_EMPTY_VALUE<int, int>));
         
         // get the number of new leaves
-        if (dUtils::AigIsPIConst(nodeId, nPIs) || nodeRef != 0) {
+        if (dUtils::AigIsPIConst(nodeId, nPIs) || nodeRef != 0) { //判断若无外部fanout可继续进行，如有则cost最大
             // stop at PI/const or non-MFFC nodes
             currCost = 999;
         } else {
@@ -72,7 +84,7 @@ __device__ __forceinline__ int findReconvMFFCCut_iter(const int rootId,
         // update best node
         if (bestCost > currCost || (bestCost == currCost && pLevels[nodeId] > pLevels[bestId]))
             bestCost = currCost, bestId = nodeId, bestIdx = i;
-        if (bestCost == 0)
+        if (bestCost == 0) //说明当前结点均有外部fanout或PI，则MFFC遍历完毕
             break;
     }
 

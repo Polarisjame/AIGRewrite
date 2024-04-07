@@ -58,7 +58,22 @@ __global__ void printMffcCut(int * vCutTable, int * vCutSizes, int * vConeSizes,
     printf("Total number of MFFCs: %d\n", counter);
 }
 
-
+/**
+ * @brief 对当前层并行遍历MFFC
+ * 
+ * @tparam useHashtable 
+ * @param vRoots 当前层结点的开始地址
+ * @param pFanin0 
+ * @param pFanin1 
+ * @param pNumFanouts 
+ * @param pLevels 
+ * @param vCutTable 
+ * @param vCutSizes 
+ * @param vConeSizes 
+ * @param nPIs 
+ * @param nMaxCutSize 
+ * @param nRoots 当前层结点数量
+ */
 template <bool useHashtable = false>
 __global__ void recordMFFC(const int * vRoots, 
                            const int * pFanin0, const int * pFanin1, 
@@ -80,6 +95,9 @@ __global__ void recordMFFC(const int * vRoots,
     }
 }
 
+/**
+ * @brief 将当前边界中未创建过MFFC的结点状态设置为1保存在vNodesStatus，即挑选下一层遍历结点
+ */
 __global__ void setStatus(const int * vRoots,
                           const int * vCutTable, const int * vCutSizes,
                           int * vNodesStatus,
@@ -103,6 +121,7 @@ __global__ void setStatus(const int * vRoots,
     }
 }
 
+/// @brief 将Cut聚合到连续空间
 __global__ void getCutTruthRanges(const int * vResynRoots, const int * vCutSizes, 
                                   int * vCutRanges, int * vTruthRanges, int nResyn) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -111,7 +130,7 @@ __global__ void getCutTruthRanges(const int * vResynRoots, const int * vCutSizes
         int cutSize = vCutSizes[nodeId];
         assert(cutSize > 0);
         vCutRanges[idx] = cutSize;
-        vTruthRanges[idx] = dUtils::TruthWordNum(cutSize);
+        vTruthRanges[idx] = dUtils::TruthWordNum(cutSize); //计算存储cutSize个输入的真值表需要空间(单位4B)
     }
 }
 
@@ -747,24 +766,27 @@ refactorMFFCPerform(bool fUseZeros, int cutSize,
     if (currLen == 0)
         return {-1, NULL, NULL, NULL, -1};
     printf("Gathered %d POs\n", currLen);
-    thrust::transform(thrust::device, vRoots, pNewGlobalListEnd, vRoots, dUtils::getNodeID());
+    thrust::transform(thrust::device, vRoots, pNewGlobalListEnd, vRoots, dUtils::getNodeID()); // thrust::transform[Inputfirst InputLast Result Operation]
     // deduplicate
     thrust::sort(thrust::device, vRoots, pNewGlobalListEnd);
     pNewGlobalListEnd = thrust::unique(thrust::device, vRoots, pNewGlobalListEnd);
     currLen = pNewGlobalListEnd - vRoots;
 
+    //从POs开始向PIs深度遍历MFFC,currLen记录当前层frontier长度
     int levelCount = 0;
     printf("Level %d, global list len %d\n", levelCount, currLen);
 
     while (currLen > 0) {
         cudaMemset(vNodesStatus, 0, nObjs * sizeof(int));
 
+        // 并行遍历一层MFFC
         recordMFFC<false><<<NUM_BLOCKS(currLen, THREAD_PER_BLOCK), THREAD_PER_BLOCK>>>(
             vRoots, d_pFanin0, d_pFanin1, d_pNumFanouts, d_pLevel, 
             vCutTable, vCutSizes, vNumSaved, 
             nPIs, cutSize, currLen
         );
 
+        
         setStatus<<<NUM_BLOCKS(currLen, THREAD_PER_BLOCK), THREAD_PER_BLOCK>>>(
             vRoots, vCutTable, vCutSizes, vNodesStatus, nPIs, currLen
         );
@@ -782,18 +804,20 @@ refactorMFFCPerform(bool fUseZeros, int cutSize,
     cudaFree(vNodesStatus);
 
     // filter out too small MFFCs by replacing cut size with -1
+    // 若MFFC边界不超过2个结点则无需重构，将CutSize置为-1
     thrust::replace_if(thrust::device, vCutSizes, vCutSizes + nObjs, vNumSaved, isSmallMFFC(), -1);
 
     // printMffcCut<<<1, 1>>>(vCutTable, vCutSizes, vNumSaved, d_pFanin0, d_pFanin1, nNodes, nPIs, nPOs);
     // cudaDeviceSynchronize();
 
     // collect the number of cones to be resyned
+    // 将需要重构的MFFC统计到vResynRoots
     pNewGlobalListEnd = thrust::copy_if(
         thrust::device, vNodesIndices + nPIs + 1, vNodesIndices + nObjs, 
         vCutSizes + nPIs + 1, vResynRoots, dUtils::notEqualsVal<int, -1>()
     );
     nResyn = pNewGlobalListEnd - vResynRoots;
-    printf("Total number of cones to be resyned: %d\n", nResyn);
+    printf("Total number of cones to be resyned: %d\n", nResyn); 
     if (nResyn == 0) {
         cudaFree(vCutTable);
         cudaFree(vCutSizes);
@@ -814,22 +838,26 @@ refactorMFFCPerform(bool fUseZeros, int cutSize,
     );
     assert(pNewGlobalListEnd - vCutRanges == nResyn);
     thrust::sort_by_key(thrust::device, vCutRanges, vCutRanges + nResyn, vResynRoots);
+    //此处只是借用vCutRanges的空间
 
     // gather the cuts to be resyned into a consecutive array
     getCutTruthRanges<<<NUM_BLOCKS(nResyn, THREAD_PER_BLOCK), THREAD_PER_BLOCK>>>(
         vResynRoots, vCutSizes, vCutRanges, vTruthRanges, nResyn);
+    // 前缀和扫描，[first,last,result] 将累加数据存储到result中
     thrust::inclusive_scan(thrust::device, vCutRanges, vCutRanges + nResyn, vCutRanges);
     thrust::inclusive_scan(thrust::device, vTruthRanges, vTruthRanges + nResyn, vTruthRanges);
+    // 将每个锥的Cut大小，真值表大小累加
     cudaDeviceSynchronize();
 
     cudaMemcpy(&nCutArrayLen, &vCutRanges[nResyn - 1], sizeof(int), cudaMemcpyDeviceToHost);
     cudaMemcpy(&nTruthArrayLen, &vTruthRanges[nResyn - 1], sizeof(int), cudaMemcpyDeviceToHost);
     cudaDeviceSynchronize();
-    cudaMalloc(&vCuts, nCutArrayLen * sizeof(int));
+    cudaMalloc(&vCuts, nCutArrayLen * sizeof(int)); 
     cudaMalloc(&vTruths, nTruthArrayLen * sizeof(unsigned));
     cudaMalloc(&vTruthsNeg, nTruthArrayLen * sizeof(unsigned));
     cudaMalloc(&vTruthElem, cutSize * dUtils::TruthWordNum(cutSize) * sizeof(unsigned));
 
+    // 将vCutTable中分散的cut集中到vCuts中
     Table::gatherTableToConsecutive<int, CUT_TABLE_SIZE>
     <<<NUM_BLOCKS(nResyn, THREAD_PER_BLOCK), THREAD_PER_BLOCK>>>(
         vCutTable, vCutSizes, vResynRoots, vCutRanges, vCuts, nResyn
@@ -841,7 +869,7 @@ refactorMFFCPerform(bool fUseZeros, int cutSize,
     cudaMalloc(&vNode2ConeResynIdx, nObjs * sizeof(int));
     cudaMemset(vNode2ConeResynIdx, -1, nObjs * sizeof(int));
 
-    Aig::getElemTruthTable<<<1, 1>>>(vTruthElem, cutSize);
+    Aig::getElemTruthTable<<<1, 1>>>(vTruthElem, cutSize); //给vTruthElem分配初始的真值表
     cudaDeviceSynchronize();
     auto startTruthTime = clock();
     Aig::getCutTruthTableConsecutive<STACK_SIZE><<<NUM_BLOCKS(nResyn, THREAD_PER_BLOCK), THREAD_PER_BLOCK>>>(

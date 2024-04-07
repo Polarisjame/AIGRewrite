@@ -177,7 +177,7 @@ __global__ void getCutTruthTableConsecutive(const int * pFanin0, const int * pFa
                                             unsigned * vTruth, const int * vTruthRanges, const unsigned * vTruthElem,
                                             int nIndices, int nPIs, int nMaxCutSize, int * vNode2ConeResynIdx = NULL) {
     typedef cub::WarpScan<int> WarpScan;
-    __shared__ typename WarpScan::TempStorage temp_storage[THREAD_PER_BLOCK / 32];
+    __shared__ typename WarpScan::TempStorage temp_storage[THREAD_PER_BLOCK / 32]; //分配给每个线程束用作中间存储
     __shared__ unsigned * vTruthMemAlloc[THREAD_PER_BLOCK / 32];
     
     int nThreads = NUM_BLOCKS(nIndices, 32) * 32;
@@ -195,7 +195,7 @@ __global__ void getCutTruthTableConsecutive(const int * pFanin0, const int * pFa
 
     if (idx < nThreads) {
         if (idx < nIndices) {
-            rootId = vIndices[idx];
+            rootId = vIndices[idx]; //得到第idx个MFFC的根id
             startIdx = (idx == 0 ? 0 : vCutRanges[idx - 1]);
             endIdx = vCutRanges[idx];
             nVars = endIdx - startIdx;
@@ -207,8 +207,10 @@ __global__ void getCutTruthTableConsecutive(const int * pFanin0, const int * pFa
             for (int i = 0; i < nVars; i++) {
                 visited[visitedSize++] = vCuts[startIdx + i];
             }
+            //将边界标记为已访问
 
             // 1. traversal to collect intermediate nodes
+            // 将结点按照拓扑顺序存放在stackRes栈中
             stackTop = stackResTop = -1;
             stack[++stackTop] = rootId;
             while (stackTop != -1) {
@@ -236,6 +238,7 @@ __global__ void getCutTruthTableConsecutive(const int * pFanin0, const int * pFa
                 int j = stackResTop++;
                 for (; j >= 0 && stackRes[j] < nodeId; j--) // insertion sort
                     stackRes[j + 1] = stackRes[j];
+                    // 栈自底向上id递减
                 stackRes[j + 1] = nodeId;
 
                 // push fanins into stack
@@ -247,12 +250,12 @@ __global__ void getCutTruthTableConsecutive(const int * pFanin0, const int * pFa
             assert(nIntNodes >= vNumSaved[rootId] && nIntNodes + nVars < STACK_SIZE);
             assert(stackRes[0] == rootId);
         }
-
         // 2. compute truth table
         // allocate memory for intermediate truth tables
         // allocate once per warp to reduce overhead
         localMemLen = (idx < nIndices ? (nVars + nIntNodes) * nWords : 0);
         WarpScan(temp_storage[warpIdx]).ExclusiveSum(localMemLen, startMemIdx, totalMemLen);
+        //NVIDIA CUB库的Scan算法，对数据求前缀和
         assert(startMemIdx != -1 && totalMemLen != -1);
 
         if (laneIdx == 0) {
