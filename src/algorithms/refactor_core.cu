@@ -256,7 +256,7 @@ __global__ void factorFromTruth(const int * vCuts, const int * vCutRanges,
     subgUtil::Subg<SUBG_CAP> subg;
 
     // the number of threads launched should be 2 * nResyn
-    if (idx < 2 * nResyn) {
+    if (idx < 2 * nResyn) { // 第idx个MFFC
         if (idx >= nResyn) {
             idx -= nResyn;
             fNeg = 1;
@@ -264,13 +264,14 @@ __global__ void factorFromTruth(const int * vCuts, const int * vCutRanges,
 
         cutStartIdx = (idx == 0 ? 0 : vCutRanges[idx - 1]);
         cutEndIdx = vCutRanges[idx];
-        nVars = cutEndIdx - cutStartIdx;
+        nVars = cutEndIdx - cutStartIdx; //Cut大小
 
         truthStartIdx = (idx == 0 ? 0 : vTruthRanges[idx - 1]);
         truthEndIdx = vTruthRanges[idx];
         assert(truthEndIdx - truthStartIdx == dUtils::TruthWordNum(nVars));
 
         const unsigned * pTruth = (fNeg ? vTruthNeg + truthStartIdx : vTruth + truthStartIdx);
+        // 指向根节点真值表
 
         // isop + factor
         minatoIsop(pTruth, nVars, &vecsMem);

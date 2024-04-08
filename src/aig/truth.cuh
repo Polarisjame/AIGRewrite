@@ -171,6 +171,11 @@ __global__ void getCutTruthTable(const int * pFanin0, const int * pFanin1, const
  * Additionally, if vNode2ConeResynIdx is provided, mark the nodes in each cone using the 
  * corresponding cone index of vIndices.
  **/
+/**
+ * @brief 计算MFFC真值表       
+ * @param    vTruth              保存MFFC根节点的真值表
+ * @return __global__ 
+ */
 template <int STACK_SIZE>
 __global__ void getCutTruthTableConsecutive(const int * pFanin0, const int * pFanin1, const int * vNumSaved,
                                             const int * vIndices, const int * vCuts, const int * vCutRanges,
@@ -198,7 +203,7 @@ __global__ void getCutTruthTableConsecutive(const int * pFanin0, const int * pFa
             rootId = vIndices[idx]; //得到第idx个MFFC的根id
             startIdx = (idx == 0 ? 0 : vCutRanges[idx - 1]);
             endIdx = vCutRanges[idx];
-            nVars = endIdx - startIdx;
+            nVars = endIdx - startIdx; //该MFFC的Cut大小
             nWords = dUtils::TruthWordNum(nVars);
             nWordsElem = dUtils::TruthWordNum(nMaxCutSize);
 
@@ -255,7 +260,7 @@ __global__ void getCutTruthTableConsecutive(const int * pFanin0, const int * pFa
         // allocate once per warp to reduce overhead
         localMemLen = (idx < nIndices ? (nVars + nIntNodes) * nWords : 0);
         WarpScan(temp_storage[warpIdx]).ExclusiveSum(localMemLen, startMemIdx, totalMemLen);
-        //NVIDIA CUB库的Scan算法，对数据求前缀和
+        //NVIDIA CUB库的Scan算法，对每个线程束中线程的localMemLen求前缀和，保存在startMemIdx中，totalMemLen存储线程束间的aggregate reduction
         assert(startMemIdx != -1 && totalMemLen != -1);
 
         if (laneIdx == 0) {
@@ -263,17 +268,19 @@ __global__ void getCutTruthTableConsecutive(const int * pFanin0, const int * pFa
             assert(vTruthMemAlloc[warpIdx] != NULL); // if NULL, then not enough heap memory
         }
         __syncwarp();
-        vTruthMem = vTruthMemAlloc[warpIdx] + startMemIdx;
+        vTruthMem = vTruthMemAlloc[warpIdx] + startMemIdx; //本线程中将要分配的真值表起始地址
         
 
         if (idx < nIndices) {
             visitedSize = 0;
             // collect elementary truth tables for the cut nodes
+            // 先计算边界Cut的真值表
             for (int i = 0; i < nVars; i++) {
                 for (int j = 0; j < nWords; j++)
                     vTruthMem[i * nWords + j] = vTruthElem[i * nWordsElem + j];
                 visited[visitedSize++] = vCuts[startIdx + i];
             }
+            //以拓扑顺序依次合并左右子树的真值表
             for (int i = stackResTop; i >= 0; i--) {
                 cutTruthIter(stackRes[i], pFanin0, pFanin1, vTruthMem, visited, &visitedSize, nWords);
             }
@@ -286,7 +293,7 @@ __global__ void getCutTruthTableConsecutive(const int * pFanin0, const int * pFa
             for (int i = 0; i < nWords; i++)
                 vTruth[startIdx + i] = vTruthMem[(visitedSize - 1) * nWords + i];
         }
-
+        //等待所有线程束完成计算
         __syncwarp();
         if (laneIdx == 0)
             free(vTruthMemAlloc[warpIdx]);

@@ -849,7 +849,7 @@ refactorMFFCPerform(bool fUseZeros, int cutSize,
     // 将每个锥的Cut大小，真值表大小累加
     cudaDeviceSynchronize();
 
-    cudaMemcpy(&nCutArrayLen, &vCutRanges[nResyn - 1], sizeof(int), cudaMemcpyDeviceToHost);
+    cudaMemcpy(&nCutArrayLen, &vCutRanges[nResyn - 1], sizeof(int), cudaMemcpyDeviceToHost); 
     cudaMemcpy(&nTruthArrayLen, &vTruthRanges[nResyn - 1], sizeof(int), cudaMemcpyDeviceToHost);
     cudaDeviceSynchronize();
     cudaMalloc(&vCuts, nCutArrayLen * sizeof(int)); 
