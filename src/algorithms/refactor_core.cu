@@ -274,7 +274,7 @@ __global__ void factorFromTruth(const int * vCuts, const int * vCutRanges,
         // 指向根节点真值表
 
         // isop + factor
-        minatoIsop(pTruth, nVars, &vecsMem);
+        minatoIsop(pTruth, nVars, &vecsMem); //Isop快速生成sop再进行refactor
         sopFactor(vecsMem.pArray, vecsMem.nSize, fNeg, vCuts + cutStartIdx, nVars, &vecsMem, &subg);
 
         // save synthesized graph into global table

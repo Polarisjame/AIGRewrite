@@ -204,7 +204,7 @@ __global__ void getCutTruthTableConsecutive(const int * pFanin0, const int * pFa
             startIdx = (idx == 0 ? 0 : vCutRanges[idx - 1]);
             endIdx = vCutRanges[idx];
             nVars = endIdx - startIdx; //该MFFC的Cut大小
-            nWords = dUtils::TruthWordNum(nVars);
+            nWords = dUtils::TruthWordNum(nVars); 
             nWordsElem = dUtils::TruthWordNum(nMaxCutSize);
 
             // set the leaves as visited

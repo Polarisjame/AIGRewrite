@@ -361,7 +361,7 @@ __host__ int HashTable<KeyT, ValueT>::retrieve_all(KeyT * keys, ValueT * values,
     cudaDeviceSynchronize();
     thrust::inclusive_scan(thrust::device, indicator, indicator + capacity, indicator);
     cudaDeviceSynchronize();
-    cudaMemcpy(&num_entries, &indicator[capacity - 1], sizeof(int), cudaMemcpyDeviceToHost);
+    cudaMemcpy(&num_entries, &indicator[capacity - 1], sizeof(int), cudaMemcpyDeviceToHost); //并行统计表中存在的实体数量
 
     if (num_entries > buffer_len) {
         printf("[HashTable::retrieve_all] Error: provided buffer len is smaller than number of entries!\n");
