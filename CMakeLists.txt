@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.8.0)
 set(CMAKE_CXX_COMPILER "/usr/bin/g++")
 set(CMAKE_C_COMPILER "/usr/bin/gcc")
 set(PATCH_ABC 1)
+option(DISABLE_PRINT "disable print meg" on)
 
 include(CheckCCompilerFlag)
 include(CheckCXXCompilerFlag)
@@ -77,6 +78,11 @@ if(DEFINED PATCH_ABC)
     project(abcg C CXX CUDA)
 
     unset(PATCH_ABC)
+
+    if(DISABLE_PRINT)
+        message(STATUS "DISABLE_PRINT :" ${DISABLE_PRINT})
+        add_definitions(-DDISABLE_PRINT)
+    endif()
 
     # handle readline library
     find_path(READLINE_ROOT_DIR

@@ -254,7 +254,7 @@ void AIGMan::saveFile(const char * path) {
 }
 
 void AIGMan::printTime() {
-    printf("{time} prev cmd: alg %.2lf s, full %.2lf s; total: alg %.2lf s, full %.2lf s.\n",
+    std::printf("{time} prev cmd: alg %.2lf s, full %.2lf s; total: alg %.2lf s, full %.2lf s.\n",
            (double) prevAlgTime / CLOCKS_PER_SEC, (double) prevFullTime / CLOCKS_PER_SEC,
            (double) totalAlgTime / CLOCKS_PER_SEC, (double) totalFullTime / CLOCKS_PER_SEC);
 }
@@ -585,16 +585,16 @@ void AIGMan::showDevice() {
 }
 
 __global__ void printStatsKernel(const int * pnPIs, const int * pnPOs, const int * pnNodes) {
-    printf("AIG stats: i/o = %d/%d and = %d", *pnPIs, *pnPOs, *pnNodes);
+    std::printf("AIG stats: i/o = %d/%d and = %d", *pnPIs, *pnPOs, *pnNodes);
 }
 
 void AIGMan::printStats() {
     if (deviceAllocated) {
         printStatsKernel<<<1, 1>>>(d_pnPIs, d_pnPOs, d_pnNodes);
         cudaDeviceSynchronize();
-        printf(" level = %d\n", nLevels);
+        std::printf(" level = %d\n", nLevels);
     } else {
-        printf("AIG stats: i/o = %d/%d and = %d level = %d\n", nPIs, nPOs, nNodes, nLevels);
+        std::printf("AIG stats: i/o = %d/%d and = %d level = %d\n", nPIs, nPOs, nNodes, nLevels);
     }
 }
 

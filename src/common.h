@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <cassert>
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/functional.h>
@@ -22,6 +23,14 @@ inline unsigned invertConstTrueFalse(unsigned lit) {
     return lit < 2 ? 1 - lit : lit;
 }
 
+# ifdef DISABLE_PRINT
+
+inline int printf(const char *format, ...)
+{
+  return 0;
+}
+
+# endif
 
 namespace dUtils {
 

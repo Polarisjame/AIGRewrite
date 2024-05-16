@@ -806,7 +806,8 @@ void GPUSolver::EnumerateAndPreEvaluate(int *level, const vector<int> &levelCoun
     BuildHashTable<<<BLOCK_NUMBER(n, LARGE_BLOCK_SIZE), LARGE_BLOCK_SIZE>>> (hashTable, n, fanin0, fanin1, isComplement0, isComplement1);           
     EvaluateNode<<<BLOCK_NUMBER(n, 768), 768>>> (n, bestSubgraph, fanin0, fanin1, isComplement0, isComplement1, nodeLevels, cuts, selectedCuts, nRef, lib, hashTable, fUseZeros == true);
         gpuErrchk( cudaDeviceSynchronize() );
-    std::cerr << cudaGetLastError() << " in EvaluateNode " << std::endl;
+    auto code = cudaGetLastError();
+    if (code) std::cerr << "Error code " << code << " in EvaluateNode " << std::endl;
 
     EVAL_TIME += clock() - startTime;
 } 
@@ -814,15 +815,16 @@ void GPUSolver::EnumerateAndPreEvaluate(int *level, const vector<int> &levelCoun
 /// @brief 并行替换子图
 /// @return 
 int GPUSolver::ReplaceSubgraphs(int n, int *CPUfanin0, int *CPUfanin1, int *CPUphase, int *CPUreplace) {
-    prt << "Replacing sub-graphs" << endl;
+    // prt << "Replacing sub-graphs" << endl;
     cudaMemcpy(phase, CPUphase, (n + 1) * sizeof(int), cudaMemcpyHostToDevice);
     cudaMemset(replace, -1, static_cast<int> (RATIO * (n + 1) * sizeof(int)));
     cudaMemset(newTable, -1, (2 * n + 1 + P) * sizeof(TableNode));
     N = n;
     ReplaceSubgr<<<BLOCK_NUMBER(n, BLOCK_SIZE), BLOCK_SIZE>>>(n, bestSubgraph, fanin0, fanin1, isComplement0, isComplement1, selectedCuts, lib, hashTable, newTable, phase, replace);
     gpuErrchk( cudaDeviceSynchronize() ); // wait until N
-    std::cerr << cudaGetLastError() << " after replace " << std::endl;
-printf("N = %d   n = %d   n * RATIO = %d\n", N, n, static_cast<int> (RATIO * n));
+    auto code = cudaGetLastError();
+    if (code) std::cerr << "Error code " << code << " after replace " << std::endl;
+    printf("N = %d   n = %d   n * RATIO = %d\n", N, n, static_cast<int> (RATIO * n));
     Revert<<<BLOCK_NUMBER(N + 1, LARGE_BLOCK_SIZE), LARGE_BLOCK_SIZE>>>(fanin0, isComplement0, N + 1);
     Revert<<<BLOCK_NUMBER(N + 1, LARGE_BLOCK_SIZE), LARGE_BLOCK_SIZE>>>(fanin1, isComplement1, N + 1);
     cudaDeviceSynchronize();
@@ -912,12 +914,12 @@ void CPUSolver::Rewrite(bool fUseZeros, bool GPUReplace) {
     expected = 0;
     gpuSolver = new GPUSolver(n);
 
-    prt << "Rewrite Iteration" << endl;
+    // prt << "Rewrite Iteration" << endl;
     ReadLibrary();
     gpuSolver->CopyLib(lib); 
     LevelCount();
     gpuSolver->EnumerateAndPreEvaluate(level, levelCount, n, fanin0, fanin1, ref, fUseZeros);
-    prt << "Finished GPU enumeration and pre-evaluation" << endl;
+    // prt << "Finished GPU enumeration and pre-evaluation" << endl;
     auto startTime = clock();
     if (GPUReplace) {
         gpuSolver->GetResults(n, bestOut, bestCut);
@@ -998,7 +1000,7 @@ void CPUSolver::Rewrite(bool fUseZeros, bool GPUReplace) {
     } else {
         gpuSolver->GetResults(n, bestOut, bestCut);
         BuildTable();
-        prt << "Finished building table" << endl;
+        // prt << "Finished building table" << endl;
         int nn = n;
         for(int i = numInputs + 1; i <= nn; i++) EvalAndReplace(i, bestCut[i]);
     }
@@ -1007,7 +1009,7 @@ void CPUSolver::Rewrite(bool fUseZeros, bool GPUReplace) {
     printf("after replace, n = %d\n", n);
 
 
-    prt << "Finished eval and replace" << endl;
+    // prt << "Finished eval and replace" << endl;
     startTime = clock();
     for(int i = numInputs + 1; i <= n; i++) if(!isDeleted[i]) {
         if(!isRedundant(i)) {
@@ -1021,7 +1023,7 @@ void CPUSolver::Rewrite(bool fUseZeros, bool GPUReplace) {
     REDUNDANCY_TIME += clock() - startTime;
     startTime = clock();
     Reorder(); // remove deleted nodes
-    prt << "Rewrite Iteration Ends" << endl;
+    // prt << "Rewrite Iteration Ends" << endl;
     // printf("GPU expected: %d\n", GPUexpected);
     printf("real reduction: %d\n", expected);
 
@@ -1190,7 +1192,8 @@ int GPUSolver::EnumerateAndPreEvaluateWave(int currIter, int *level, const std::
     EvaluateNodeWave<<<BLOCK_NUMBER(n, 768), 768>>>(n, bestSubgraph, fanin0, fanin1, isComplement0, isComplement1, 
                                                     nodeLevels, cuts, selectedCuts, nRef, lib, hashTable, vWaveMask, fUseZeros == true);
     gpuErrchk( cudaDeviceSynchronize() );
-    std::cerr << "Error code " << cudaGetLastError() << " in EvaluateNode " << std::endl;
+    auto code = cudaGetLastError();
+    if (code) std::cerr << "Error code " << code << " in EvaluateNode " << std::endl;
     EVAL_TIME += clock() - startTime;
     std::cout << "Finished GPU enumeration and pre-evaluation" << std::endl;
     return 1;
