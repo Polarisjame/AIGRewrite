@@ -56,7 +56,7 @@ public:
     void GetResults(int n, int *CPUbestSubgraph, Cut *CPUcuts);
     void CopyLib(Library CPUlib);
     void EnumerateAndPreEvaluate(int *level, const std::vector<int> &levelCount, 
-                                 int n, int *CPUfanin0, int *CPUfanin1, int *CPUref, bool fUseZeros);
+                                 int n, int *CPUfanin0, int *CPUfanin1, int *CPUref, bool fUseZeros, int numInputs);
     int EnumerateAndPreEvaluateWave(int currIter, int *level, const std::vector<int> &levelCount, 
                                     int n, int *CPUfanin0, int *CPUfanin1, int *CPUref, bool fUseZeros);
     int ReplaceSubgraphs(int n, int *CPUfanin0, int *CPUfanin1, int *CPUphase, int *CPUreplace);
