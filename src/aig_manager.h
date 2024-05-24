@@ -21,7 +21,7 @@ public:
     // algorithms
     void strash(bool fCPU = false, bool fRecordTime = true);
     void balance(int sortDecId = 1);
-    void rewrite(bool fUseZeros = false, bool fGPUDeduplicate = false);
+    void rewrite(bool fUseZeros = false, bool fGPUDeduplicate = false, bool fUpdateLevel = false);
     void refactor(bool fAlgMFFC = false, bool fUseZeros = false, int cutSize = 12);
 
     // memory helpers
