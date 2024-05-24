@@ -445,7 +445,7 @@ __device__ int Eval(int cur, int *match, int Class, Library *lib, int curId) {
 /// @param fUseZeros 是否即使收益为0也替换
 /// @return 每个结点最好的Cut保存在selectedCuts[id]，对应的子图id保存在bestout[id]
 __global__ void EvaluateNode(int sz, int *bestout, int *fanin0, int *fanin1, int *isC0, int *isC1, int *nodeLevels, Cut *cuts, Cut* selectedCuts, int *nRef, 
-                             Library *lib, TableNode* hashTable, int fUseZeros, int numInputs) {
+                             Library *lib, TableNode* hashTable, int fUseZeros, int numInputs, bool fUpdateLevel) {
     if(blockIdx.x * blockDim.x + threadIdx.x >= sz) return; //对id号节点进行Evaluate
     int id = 1 + blockIdx.x * blockDim.x + threadIdx.x, reduction = -1, bestLevel = 99999999, bestCut = -1, bestOut;
     /* tableId - MFFC中每个结点id(包含MFFC中以及边界，不含cut)
@@ -498,7 +498,7 @@ __global__ void EvaluateNode(int sz, int *bestout, int *fanin0, int *fanin1, int
             //     bestCut = i;
             //     bestOut = out;
             // }
-            if(savedLevel - rtLevel < 0) continue;
+            if(!fUpdateLevel && savedLevel - rtLevel < 0) continue;
             // printf("savedLevel: %d, replaceLevel: %d \n", savedLevel, rtLevel);
             if (saved - nodesAdded < 0 || (saved - nodesAdded == 0 && !fUseZeros)) //计算收益
                 continue;
@@ -788,7 +788,7 @@ void GPUSolver::CopyLib(Library CPUlib) {
 /// @param CPUfanin1 
 /// @param CPUref 每个结点fanout数量
 /// @param fUseZeros 
-void GPUSolver::EnumerateAndPreEvaluate(int *level, const vector<int> &levelCount, int n, int *CPUfanin0, int *CPUfanin1, int *CPUref, bool fUseZeros, int numInputs) {
+void GPUSolver::EnumerateAndPreEvaluate(int *level, const vector<int> &levelCount, int n, int *CPUfanin0, int *CPUfanin1, int *CPUref, bool fUseZeros, int numInputs, bool fUpdateLevel) {
     int * nodeLevels = phase; // note, phase has not been used yet, so use its memory for now
     cudaMemcpy(nodeLevels, level, (n + 1) * sizeof(int), cudaMemcpyHostToDevice);
 
@@ -808,7 +808,7 @@ void GPUSolver::EnumerateAndPreEvaluate(int *level, const vector<int> &levelCoun
     ENUM_TIME += clock() - startTime;
     startTime = clock();
     BuildHashTable<<<BLOCK_NUMBER(n, LARGE_BLOCK_SIZE), LARGE_BLOCK_SIZE>>> (hashTable, n, fanin0, fanin1, isComplement0, isComplement1);           
-    EvaluateNode<<<BLOCK_NUMBER(n, 768), 768>>> (n, bestSubgraph, fanin0, fanin1, isComplement0, isComplement1, nodeLevels, cuts, selectedCuts, nRef, lib, hashTable, fUseZeros == true, numInputs);
+    EvaluateNode<<<BLOCK_NUMBER(n, 768), 768>>> (n, bestSubgraph, fanin0, fanin1, isComplement0, isComplement1, nodeLevels, cuts, selectedCuts, nRef, lib, hashTable, fUseZeros == true, numInputs, fUpdateLevel);
         gpuErrchk( cudaDeviceSynchronize() );
     auto code = cudaGetLastError();
     if (code) std::cerr << "Error code " << code << " in EvaluateNode " << std::endl;
@@ -914,7 +914,7 @@ void CPUSolver::Reset(int nInputs, int nOutputs, int nTotal,
     Reorder();
 }
 
-void CPUSolver::Rewrite(bool fUseZeros, bool GPUReplace) {
+void CPUSolver::Rewrite(bool fUseZeros, bool GPUReplace, bool fUpdateLevel) {
     expected = 0;
     gpuSolver = new GPUSolver(n);
 
@@ -922,7 +922,7 @@ void CPUSolver::Rewrite(bool fUseZeros, bool GPUReplace) {
     ReadLibrary();
     gpuSolver->CopyLib(lib); 
     LevelCount();
-    gpuSolver->EnumerateAndPreEvaluate(level, levelCount, n, fanin0, fanin1, ref, fUseZeros, numInputs);
+    gpuSolver->EnumerateAndPreEvaluate(level, levelCount, n, fanin0, fanin1, ref, fUseZeros, numInputs, fUpdateLevel);
     // prt << "Finished GPU enumeration and pre-evaluation" << endl;
     auto startTime = clock();
     if (GPUReplace) {

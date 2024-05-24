@@ -56,7 +56,7 @@ public:
     void GetResults(int n, int *CPUbestSubgraph, Cut *CPUcuts);
     void CopyLib(Library CPUlib);
     void EnumerateAndPreEvaluate(int *level, const std::vector<int> &levelCount, 
-                                 int n, int *CPUfanin0, int *CPUfanin1, int *CPUref, bool fUseZeros, int numInputs);
+                                 int n, int *CPUfanin0, int *CPUfanin1, int *CPUref, bool fUseZeros, int numInputs, bool fUpdateLevel);
     int EnumerateAndPreEvaluateWave(int currIter, int *level, const std::vector<int> &levelCount, 
                                     int n, int *CPUfanin0, int *CPUfanin1, int *CPUref, bool fUseZeros);
     int ReplaceSubgraphs(int n, int *CPUfanin0, int *CPUfanin1, int *CPUphase, int *CPUreplace);
@@ -118,7 +118,7 @@ public:
         delete [] visMark;
     }
 
-    void Rewrite(bool fUseZeros = false, bool GPUReplace = true);
+    void Rewrite(bool fUseZeros = false, bool GPUReplace = true, bool fUpdateLevel = false);
     void RewriteWave(bool fUseZeros = false);
     void Reset(int nInputs, int nOutputs, int nTotal, // need to be called if the previous command is not rewrite
                const int * pFanin0, const int * pFanin1, const int * pOuts); 

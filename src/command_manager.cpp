@@ -52,15 +52,17 @@ int balanceHandler(AIGMan & aigman, const std::vector<std::string> & vLiterals) 
 }
 
 int rewriteHandler(AIGMan & aigman, const std::vector<std::string> & vLiterals) {
-    bool fUseZeros = false, fGPUDeduplicate = false;
+    bool fUseZeros = false, fGPUDeduplicate = false, fUpdateLevel = false;
     for (int i = 1; i < vLiterals.size(); i++) {
         if (vLiterals[i] == "-z") {
             fUseZeros = true;
         } else if (vLiterals[i] == "-d") {
             fGPUDeduplicate = true;
+        } else if (vLiterals[i] == "-l") {
+            fUpdateLevel = true;
         }
     }
-    aigman.rewrite(fUseZeros, fGPUDeduplicate);
+    aigman.rewrite(fUseZeros, fGPUDeduplicate, fUpdateLevel);
     return 0;
 }
 
