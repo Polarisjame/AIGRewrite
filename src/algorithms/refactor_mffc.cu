@@ -58,22 +58,7 @@ __global__ void printMffcCut(int * vCutTable, int * vCutSizes, int * vConeSizes,
     printf("Total number of MFFCs: %d\n", counter);
 }
 
-/**
- * @brief 对当前层并行遍历MFFC
- * 
- * @tparam useHashtable 
- * @param vRoots 当前层结点的开始地址
- * @param pFanin0 
- * @param pFanin1 
- * @param pNumFanouts 
- * @param pLevels 
- * @param vCutTable 
- * @param vCutSizes 
- * @param vConeSizes 
- * @param nPIs 
- * @param nMaxCutSize 
- * @param nRoots 当前层结点数量
- */
+
 template <bool useHashtable = false>
 __global__ void recordMFFC(const int * vRoots, 
                            const int * pFanin0, const int * pFanin1, 
@@ -95,9 +80,6 @@ __global__ void recordMFFC(const int * vRoots,
     }
 }
 
-/**
- * @brief 将当前边界中未创建过MFFC的结点状态设置为1保存在vNodesStatus，即挑选下一层遍历结点
- */
 __global__ void setStatus(const int * vRoots,
                           const int * vCutTable, const int * vCutSizes,
                           int * vNodesStatus,
@@ -121,7 +103,6 @@ __global__ void setStatus(const int * vRoots,
     }
 }
 
-/// @brief 将Cut聚合到连续空间
 __global__ void getCutTruthRanges(const int * vResynRoots, const int * vCutSizes, 
                                   int * vCutRanges, int * vTruthRanges, int nResyn) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -130,7 +111,7 @@ __global__ void getCutTruthRanges(const int * vResynRoots, const int * vCutSizes
         int cutSize = vCutSizes[nodeId];
         assert(cutSize > 0);
         vCutRanges[idx] = cutSize;
-        vTruthRanges[idx] = dUtils::TruthWordNum(cutSize); //计算存储cutSize个输入的真值表需要空间(单位4B)
+        vTruthRanges[idx] = dUtils::TruthWordNum(cutSize);
     }
 }
 
@@ -145,6 +126,7 @@ __device__ int evalSubgNumAdded(int rootId, int * pNewRootLevel, const int * vCu
     int vFuncs[SUBG_CAP], vLevels[SUBG_CAP];
     int length = vSubgLens[subgIdx] + nVars;
     int currRowIdx, columnPtr;
+    int savedLevel = pLevels[rootId];
 
     assert(vSubgLens[subgIdx] > 0);
 
@@ -246,6 +228,8 @@ __device__ int evalSubgNumAdded(int rootId, int * pNewRootLevel, const int * vCu
         vLevels[i] = newLevel;
     }
     *pNewRootLevel = vLevels[length - 1];
+    // printf("********* Old Level: %d, New Level: %d", savedLevel, *pNewRootLevel);
+    if(*pNewRootLevel > savedLevel) return -1;
     return counter;
 }
 
@@ -524,6 +508,7 @@ int insertMFFCs(uint64 * htDestKeys, uint32 * htDestValues, int htDestCapacity,
         vSubgTable, vSubgLinks, vSubgLens, vResynRoots, vSelectedSubgInd, vOldRoot2NewRootLits, 
         vFinishedMark, nObjs, nResyn
     );
+    cudaDeviceSynchronize();
     pNewListEnd = thrust::remove_if(thrust::device, vResynIdSeq, vResynIdSeq + nResyn, 
                                     vFinishedMark, thrust::identity<int>());
     assert(pNewListEnd - vResynIdSeq <= nResyn);
@@ -538,11 +523,13 @@ int insertMFFCs(uint64 * htDestKeys, uint32 * htDestValues, int htDestCapacity,
             iter, vResynIdSeq, vCuts, vCutRanges, htDestKeys, htDestValues, htDestCapacity, 
             vSubgTable, vSubgLinks, vSubgLens, vSelectedSubgInd, idCounter, nReplace
         );
+        cudaDeviceSynchronize();
         updateInsertedIdsIter<<<NUM_BLOCKS(nReplace, THREAD_PER_BLOCK), THREAD_PER_BLOCK>>>(
             iter, vResynRoots, vResynIdSeq, htDestKeys, htDestValues, htDestCapacity, 
             vSubgTable, vSubgLinks, vSubgLens, vSelectedSubgInd, vOldRoot2NewRootLits, 
             vFinishedMark, nReplace
         );
+        cudaDeviceSynchronize();
         // increment idCounter
         assert(idCounter + nReplace < (INT_MAX / 2));
         idCounter += nReplace;
@@ -550,6 +537,7 @@ int insertMFFCs(uint64 * htDestKeys, uint32 * htDestValues, int htDestCapacity,
         // shrink according to vFinishedMark
         pNewListEnd = thrust::remove_if(thrust::device, vResynIdSeq, vResynIdSeq + nReplace, 
                                         vFinishedMark, thrust::identity<int>());
+        cudaDeviceSynchronize();
         assert(pNewListEnd - vResynIdSeq <= nReplace);
         nReplace = pNewListEnd - vResynIdSeq;
         
@@ -561,6 +549,7 @@ int insertMFFCs(uint64 * htDestKeys, uint32 * htDestValues, int htDestCapacity,
     checkInsertion<<<NUM_BLOCKS(nResyn, THREAD_PER_BLOCK), THREAD_PER_BLOCK>>>(
         vResynRoots, vOldRoot2NewRootLits, vSelectedSubgInd, nResyn
     );
+    cudaDeviceSynchronize();
 
     printf("Insertion complete, idCounter = %d\n", idCounter);
 
@@ -660,23 +649,17 @@ reorder(int * vFanin0New, int * vFanin1New, int * pOuts,
         if (vhFanin0[i] != -1 && !isRedundantNode(i, nPIs, vhFanin0)) {
             assert(vhFanin0New[vhNewInd[i]] == -1 && vhFanin1New[vhNewInd[i]] == -1);
             // propagate if fanin is redundant
-            int lit, propLit;
-            if (isRedundantNode(AigNodeID(vhFanin0[i]), nPIs, vhFanin0)) {
-                propLit = vhFanin1[AigNodeID(vhFanin0[i])]; // lit of the redundant node
-                propLit = dUtils::AigNodeLitCond(vhNewInd[AigNodeID(propLit)], AigNodeIsComplement(propLit));
-                lit = dUtils::AigNodeNotCond(propLit, AigNodeIsComplement(vhFanin0[i]));
-            } else
-                lit = dUtils::AigNodeLitCond(vhNewInd[AigNodeID(vhFanin0[i])], 
-                                             AigNodeIsComplement(vhFanin0[i]));
+            int lit, propLit = vhFanin0[i];
+            while(isRedundantNode(AigNodeID(propLit), nPIs, vhFanin0))
+                propLit = dUtils::AigNodeNotCond(vhFanin1[AigNodeID(propLit)], AigNodeIsComplement(propLit));
+            lit = dUtils::AigNodeLitCond(vhNewInd[AigNodeID(propLit)], AigNodeIsComplement(propLit));
+
             vhFanin0New[vhNewInd[i]] = lit;
 
-            if (isRedundantNode(AigNodeID(vhFanin1[i]), nPIs, vhFanin0)) {
-                propLit = vhFanin1[AigNodeID(vhFanin1[i])]; // lit of the redundant node
-                propLit = dUtils::AigNodeLitCond(vhNewInd[AigNodeID(propLit)], AigNodeIsComplement(propLit));
-                lit = dUtils::AigNodeNotCond(propLit, AigNodeIsComplement(vhFanin1[i]));
-            } else
-                lit = dUtils::AigNodeLitCond(vhNewInd[AigNodeID(vhFanin1[i])], 
-                                             AigNodeIsComplement(vhFanin1[i]));
+            propLit = vhFanin1[i];
+            while(isRedundantNode(AigNodeID(propLit), nPIs, vhFanin0))
+                propLit = dUtils::AigNodeNotCond(vhFanin1[AigNodeID(propLit)], AigNodeIsComplement(propLit));
+            lit = dUtils::AigNodeLitCond(vhNewInd[AigNodeID(propLit)], AigNodeIsComplement(propLit));
             vhFanin1New[vhNewInd[i]] = lit;
 
             if (vhFanin0New[vhNewInd[i]] > vhFanin1New[vhNewInd[i]]) {
@@ -692,14 +675,11 @@ reorder(int * vFanin0New, int * vFanin1New, int * pOuts,
         int lit, propLit;
         assert(oldId <= nPIs || vhFanin0[oldId] != -1);
 
-        if (isRedundantNode(oldId, nPIs, vhFanin0)) {
-            // propagate to the new node
-            propLit = vhFanin1[oldId];
-            propLit = dUtils::AigNodeLitCond(vhNewInd[AigNodeID(propLit)], AigNodeIsComplement(propLit));
-            lit = dUtils::AigNodeNotCond(propLit, AigNodeIsComplement(pOuts[i]));
-        } else
-            lit = dUtils::AigNodeLitCond(vhNewInd[oldId], AigNodeIsComplement(pOuts[i]));
-        
+        propLit = pOuts[i];
+        while(isRedundantNode(AigNodeID(propLit), nPIs, vhFanin0))
+            propLit = dUtils::AigNodeNotCond(vhFanin1[AigNodeID(propLit)], AigNodeIsComplement(propLit));
+        lit = dUtils::AigNodeLitCond(vhNewInd[AigNodeID(propLit)], AigNodeIsComplement(propLit));
+
         vhOutsNew[i] = lit;
     }
     printf("Reordered network new nObjs: %d, original nObjs: %d\n", nObjsNew, nObjs);
@@ -746,50 +726,45 @@ refactorMFFCPerform(bool fUseZeros, int cutSize,
     cudaMalloc(&vNodesIndices, nObjs * sizeof(int));
     cudaMalloc(&vResynRoots, nObjs * sizeof(int));
 
-    cudaMalloc(&vCutTable, nObjs * CUT_TABLE_SIZE * sizeof(int));
+    cudaMalloc(&vCutTable, (size_t)nObjs * CUT_TABLE_SIZE * sizeof(int));
     cudaMalloc(&vCutSizes, nObjs * sizeof(int));
     cudaMalloc(&vNumSaved, nObjs * sizeof(int));
     cudaMemset(vCutSizes, -1, nObjs * sizeof(int));
     cudaMemset(vNumSaved, -1, nObjs * sizeof(int));
 
     // precompute a consecutive indices array for gathering uses
-    thrust::sequence(thrust::device, vNodesIndices, vNodesIndices + nObjs); // sequence:生成内容为0,1,2...的数组
-    //vNodesIndices赋值为0,1,2...的数组，长度nObjs
+    thrust::sequence(thrust::device, vNodesIndices, vNodesIndices + nObjs);
 
     // generate the initial vRoots
     pNewGlobalListEnd = thrust::copy_if(thrust::device, d_pOuts, d_pOuts + nPOs, 
                                         vRoots, dUtils::isNodeLit<int>(nPIs));
-    // namespace dUtils: common.h
-    //将d_pOuts:d_pOuts + nPOs 的内容复制到 vRoots 开始的地址(不是PIs的值)，返回vRoots+n
-
-    currLen = pNewGlobalListEnd - vRoots; 
+    currLen = pNewGlobalListEnd - vRoots;
     if (currLen == 0)
         return {-1, NULL, NULL, NULL, -1};
     printf("Gathered %d POs\n", currLen);
-    thrust::transform(thrust::device, vRoots, pNewGlobalListEnd, vRoots, dUtils::getNodeID()); // thrust::transform[Inputfirst InputLast Result Operation]
+    thrust::transform(thrust::device, vRoots, pNewGlobalListEnd, vRoots, dUtils::getNodeID());
     // deduplicate
     thrust::sort(thrust::device, vRoots, pNewGlobalListEnd);
     pNewGlobalListEnd = thrust::unique(thrust::device, vRoots, pNewGlobalListEnd);
     currLen = pNewGlobalListEnd - vRoots;
 
-    //从POs开始向PIs深度遍历MFFC,currLen记录当前层frontier长度
     int levelCount = 0;
     printf("Level %d, global list len %d\n", levelCount, currLen);
 
     while (currLen > 0) {
         cudaMemset(vNodesStatus, 0, nObjs * sizeof(int));
 
-        // 并行遍历一层MFFC
         recordMFFC<false><<<NUM_BLOCKS(currLen, THREAD_PER_BLOCK), THREAD_PER_BLOCK>>>(
             vRoots, d_pFanin0, d_pFanin1, d_pNumFanouts, d_pLevel, 
             vCutTable, vCutSizes, vNumSaved, 
             nPIs, cutSize, currLen
         );
+        cudaDeviceSynchronize();
 
-        
         setStatus<<<NUM_BLOCKS(currLen, THREAD_PER_BLOCK), THREAD_PER_BLOCK>>>(
             vRoots, vCutTable, vCutSizes, vNodesStatus, nPIs, currLen
         );
+        cudaDeviceSynchronize();
 
         pNewGlobalListEnd = thrust::copy_if(
             thrust::device, vNodesIndices, vNodesIndices + nObjs, 
@@ -804,20 +779,18 @@ refactorMFFCPerform(bool fUseZeros, int cutSize,
     cudaFree(vNodesStatus);
 
     // filter out too small MFFCs by replacing cut size with -1
-    // 若MFFC边界不超过2个结点则无需重构，将CutSize置为-1
     thrust::replace_if(thrust::device, vCutSizes, vCutSizes + nObjs, vNumSaved, isSmallMFFC(), -1);
 
     // printMffcCut<<<1, 1>>>(vCutTable, vCutSizes, vNumSaved, d_pFanin0, d_pFanin1, nNodes, nPIs, nPOs);
     // cudaDeviceSynchronize();
 
     // collect the number of cones to be resyned
-    // 将需要重构的MFFC统计到vResynRoots
     pNewGlobalListEnd = thrust::copy_if(
         thrust::device, vNodesIndices + nPIs + 1, vNodesIndices + nObjs, 
         vCutSizes + nPIs + 1, vResynRoots, dUtils::notEqualsVal<int, -1>()
     );
     nResyn = pNewGlobalListEnd - vResynRoots;
-    printf("Total number of cones to be resyned: %d\n", nResyn); 
+    printf("Total number of cones to be resyned: %d\n", nResyn);
     if (nResyn == 0) {
         cudaFree(vCutTable);
         cudaFree(vCutSizes);
@@ -838,26 +811,23 @@ refactorMFFCPerform(bool fUseZeros, int cutSize,
     );
     assert(pNewGlobalListEnd - vCutRanges == nResyn);
     thrust::sort_by_key(thrust::device, vCutRanges, vCutRanges + nResyn, vResynRoots);
-    //此处只是借用vCutRanges的空间
 
     // gather the cuts to be resyned into a consecutive array
     getCutTruthRanges<<<NUM_BLOCKS(nResyn, THREAD_PER_BLOCK), THREAD_PER_BLOCK>>>(
         vResynRoots, vCutSizes, vCutRanges, vTruthRanges, nResyn);
-    // 前缀和扫描，[first,last,result] 将累加数据存储到result中
+    cudaDeviceSynchronize();
     thrust::inclusive_scan(thrust::device, vCutRanges, vCutRanges + nResyn, vCutRanges);
     thrust::inclusive_scan(thrust::device, vTruthRanges, vTruthRanges + nResyn, vTruthRanges);
-    // 将每个锥的Cut大小，真值表大小累加
     cudaDeviceSynchronize();
 
-    cudaMemcpy(&nCutArrayLen, &vCutRanges[nResyn - 1], sizeof(int), cudaMemcpyDeviceToHost); 
+    cudaMemcpy(&nCutArrayLen, &vCutRanges[nResyn - 1], sizeof(int), cudaMemcpyDeviceToHost);
     cudaMemcpy(&nTruthArrayLen, &vTruthRanges[nResyn - 1], sizeof(int), cudaMemcpyDeviceToHost);
     cudaDeviceSynchronize();
-    cudaMalloc(&vCuts, nCutArrayLen * sizeof(int)); 
+    cudaMalloc(&vCuts, nCutArrayLen * sizeof(int));
     cudaMalloc(&vTruths, nTruthArrayLen * sizeof(unsigned));
     cudaMalloc(&vTruthsNeg, nTruthArrayLen * sizeof(unsigned));
-    cudaMalloc(&vTruthElem, cutSize * dUtils::TruthWordNum(cutSize) * sizeof(unsigned));
+    gpuErrchk( cudaMalloc(&vTruthElem, (size_t)cutSize * dUtils::TruthWordNum(cutSize) * sizeof(unsigned)) );
 
-    // 将vCutTable中分散的cut集中到vCuts中
     Table::gatherTableToConsecutive<int, CUT_TABLE_SIZE>
     <<<NUM_BLOCKS(nResyn, THREAD_PER_BLOCK), THREAD_PER_BLOCK>>>(
         vCutTable, vCutSizes, vResynRoots, vCutRanges, vCuts, nResyn
@@ -869,7 +839,7 @@ refactorMFFCPerform(bool fUseZeros, int cutSize,
     cudaMalloc(&vNode2ConeResynIdx, nObjs * sizeof(int));
     cudaMemset(vNode2ConeResynIdx, -1, nObjs * sizeof(int));
 
-    Aig::getElemTruthTable<<<1, 1>>>(vTruthElem, cutSize); //给vTruthElem分配初始的真值表
+    Aig::getElemTruthTable<<<1, 1>>>(vTruthElem, cutSize);
     cudaDeviceSynchronize();
     auto startTruthTime = clock();
     Aig::getCutTruthTableConsecutive<STACK_SIZE><<<NUM_BLOCKS(nResyn, THREAD_PER_BLOCK), THREAD_PER_BLOCK>>>(
@@ -888,12 +858,12 @@ refactorMFFCPerform(bool fUseZeros, int cutSize,
     // -1: unvisited, 0: last row, >0: next row idx
     int nResynGraphs = 2 * nResyn; // for normal and negated graphs
     cudaMalloc(&vSelectedSubgInd, nResyn * sizeof(int));
-    cudaMalloc(&vSubgTable, 2 * nResynGraphs * SUBG_TABLE_SIZE * sizeof(uint64));
-    cudaMalloc(&vSubgLinks, 2 * nResynGraphs * sizeof(int));
-    cudaMalloc(&vSubgLens, nResynGraphs * sizeof(int));
+    cudaMalloc(&vSubgTable, (size_t)2 * nResynGraphs * SUBG_TABLE_SIZE * sizeof(uint64));
+    cudaMalloc(&vSubgLinks, (size_t)2 * nResynGraphs * sizeof(int));
+    cudaMalloc(&vSubgLens, (size_t)nResynGraphs * sizeof(int));
     cudaMalloc(&pSubgTableNext, sizeof(int));
-    cudaMemset(vSubgLinks, -1, 2 * nResynGraphs * sizeof(int));
-    cudaMemset(vSubgLens, -1, nResynGraphs * sizeof(int));
+    cudaMemset(vSubgLinks, -1, (size_t)2 * nResynGraphs * sizeof(int));
+    cudaMemset(vSubgLens, -1, (size_t)nResynGraphs * sizeof(int));
     cudaMemcpy(pSubgTableNext, &nResynGraphs, sizeof(int), cudaMemcpyHostToDevice);
     cudaDeviceSynchronize();
 
@@ -914,6 +884,7 @@ refactorMFFCPerform(bool fUseZeros, int cutSize,
 
     Aig::buildHashTable<<<NUM_BLOCKS(nNodes, THREAD_PER_BLOCK), THREAD_PER_BLOCK>>>(
         d_pFanin0, d_pFanin1, htKeys, htValues, htCapacity, nNodes, nPIs);
+    cudaDeviceSynchronize();
     
     // the evaluation is DAG-aware, considering shareable node with non-MFFC nodes (vNode2ConeResynIdx unassigned)
     evalFactoredForm<<<NUM_BLOCKS(nResynGraphs, THREAD_PER_BLOCK), THREAD_PER_BLOCK>>>(

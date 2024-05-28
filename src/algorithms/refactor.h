@@ -25,7 +25,7 @@ __global__ void factorFromTruth(const int * vCuts, const int * vCutRanges,
                                 const unsigned * vTruthElem, int nResyn);
 
 
-const int MAX_CUT_SIZE = 15;
+const int MAX_CUT_SIZE = 20;
 const int CUT_TABLE_SIZE = 16;
 const int SUBG_TABLE_SIZE = 8;
 const int STACK_SIZE = 192;

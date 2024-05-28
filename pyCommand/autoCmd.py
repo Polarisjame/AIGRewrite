@@ -62,7 +62,7 @@ class Command():
         logging('read from: ' + self.dataPath)
     
     def getCmd(self, mode, cmd, filePath, targetFilePath):
-        gpuRf = 'grf; '
+        gpuRf = 'grf -m; '
         gpuRw = 'grw; '
         writeCmd = ""
         if self.trw:
@@ -87,7 +87,7 @@ class Command():
                     # "read ../double_data/double_aig_arithmetic/double_log2.aig; gget; time; gb; grw -d; grf -z; st; gb; grw -d; grw -z -d; grw -z -d; gb -s; grf -z; st; grw -z -d; grw -z -d; gb -s; time; gput; ps; "
         else:
             if cmd == 'rewrite':
-                return f"./abc -c \"r {filePath}; time; drw ; time; ps; {writeCmd}\""
+                return f"./abc -c \"r {filePath}; time; drw; time; ps; {writeCmd}\""
             elif cmd == 'balance':
                 return f"./abc -c \"r {filePath}; time; balance ; time; ps; {writeCmd}\""
             elif cmd == 'refactor':
@@ -118,8 +118,8 @@ class Command():
                 continue
             for file in os.listdir(os.path.join(self.dataPath,dirs)):
                 filePath = os.path.join(self.dataPath,dirs,file)
-                if not('div.aig' in file or 'hyp.aig' in file or 'mem_ctrl' in file):
-                    continue
+                # if not('div.aig' in file or 'hyp.aig' in file or 'mem_ctrl' in file):
+                #     continue
                 if (self.cmd == 'refactor' or self.cmd == 'rf_resyn' or self.cmd == 'resyn2') and IsLarge(file):
                     filePath = os.path.join(self.dataPath+'_s',dirs,file)
                 targetFilePath = os.path.join(targetPath,self.cmd+"_"+file)

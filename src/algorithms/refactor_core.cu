@@ -18,6 +18,7 @@ __device__ int evaluateSubg(int rootId, int * pNewRootLevel, const int * vCuts, 
     uint32 retrId;
     int vFuncs[SUBG_CAP], vLevels[SUBG_CAP];
 
+    int savedLevel = pLevels[rootId];
     // check the case of the resyned cut is a const or a single var of cut nodes
     if (subg->nSize == nVars + 1) {
         subgUtil::unbindAndNodeKeyFlag(subg->pArray[nVars], &lit0, &lit1, &fCompRoot);
@@ -69,6 +70,7 @@ __device__ int evaluateSubg(int rootId, int * pNewRootLevel, const int * vCuts, 
         vFuncs[i] = currId;
     }
     *pNewRootLevel = vLevels[subg->nSize - 1];
+    // printf("********* Old Level: %d, New Level: %d", savedLevel, *pNewRootLevel);
     return counter;
 }
 
@@ -256,7 +258,7 @@ __global__ void factorFromTruth(const int * vCuts, const int * vCutRanges,
     subgUtil::Subg<SUBG_CAP> subg;
 
     // the number of threads launched should be 2 * nResyn
-    if (idx < 2 * nResyn) { // 第idx个MFFC
+    if (idx < 2 * nResyn) {
         if (idx >= nResyn) {
             idx -= nResyn;
             fNeg = 1;
@@ -264,18 +266,19 @@ __global__ void factorFromTruth(const int * vCuts, const int * vCutRanges,
 
         cutStartIdx = (idx == 0 ? 0 : vCutRanges[idx - 1]);
         cutEndIdx = vCutRanges[idx];
-        nVars = cutEndIdx - cutStartIdx; //Cut大小
+        nVars = cutEndIdx - cutStartIdx;
 
         truthStartIdx = (idx == 0 ? 0 : vTruthRanges[idx - 1]);
         truthEndIdx = vTruthRanges[idx];
         assert(truthEndIdx - truthStartIdx == dUtils::TruthWordNum(nVars));
 
         const unsigned * pTruth = (fNeg ? vTruthNeg + truthStartIdx : vTruth + truthStartIdx);
-        // 指向根节点真值表
 
         // isop + factor
-        minatoIsop(pTruth, nVars, &vecsMem); //Isop快速生成sop再进行refactor
+        minatoIsop(pTruth, nVars, &vecsMem);
+        __syncthreads();
         sopFactor(vecsMem.pArray, vecsMem.nSize, fNeg, vCuts + cutStartIdx, nVars, &vecsMem, &subg);
+        __syncthreads();
 
         // save synthesized graph into global table
         int currRowIdx, lastRowIdx, columnPtr;
@@ -300,6 +303,7 @@ __global__ void factorFromTruth(const int * vCuts, const int * vCutRanges,
             }
             vSubgTable[currRowIdx * SUBG_TABLE_SIZE + (columnPtr++)] = subg.pArray[i];
         }
+        __syncthreads();
 
         // unsigned * vTruthTemp = (unsigned *) malloc(dUtils::TruthWordNum(nVars) * sizeof(unsigned));
         // getSubgTruth(&subg, vCuts + cutStartIdx, nVars, vTruthTemp, vTruthElem, 12);
@@ -309,5 +313,4 @@ __global__ void factorFromTruth(const int * vCuts, const int * vCutRanges,
         // free(vTruthTemp);
     }
 }
-
 

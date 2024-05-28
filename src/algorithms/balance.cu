@@ -36,6 +36,7 @@ __global__ void checkCoverTravEnd(int * isEnd, int * vInputs, int * vInputsFilte
                                   int * vCanonTable, const int nPIs, const int arrayLen) {
     /**
      * This is a full-filtering marking both "PI" and "R" (in-level redundancy). 
+     * turning vNodes to nodeID, detect duplicate nodes
      **/
 
     // isEnd should be 1 when passed in!
