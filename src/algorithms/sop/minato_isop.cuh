@@ -180,7 +180,7 @@ void minatoIsop(const unsigned * puTruth, int nVars,
 
     vecsMem->shrink(0); // clear the memory
 
-    pResult = minatoIsopRec(puTruth, puTruth, nVars, pcRes, vecsMem);
+    pResult = minatoIsopRec(puTruth, puTruth, nVars, pcRes, vecsMem); //Isop生成不冗余的sop
     assert(truthUtil::truthEqual(puTruth, pResult, nVars));
 
     if (pcRes->nCubes == 0 || (pcRes->nCubes == 1 && pcRes->pCubes[0] == 0)) {

@@ -8,7 +8,6 @@
 #include <string>
 #include <sstream>
 #include "common.h"
-#include <thrust/extrema.h>
 #include "rewrite.h"
 #include "robin_hood.h"
 #include "rewrite_library.inc"
@@ -46,16 +45,12 @@ ostream& print() {
 }
 #define prt print()
 
-template<typename T>
-__device__ T gmax(T a, T b){
-    if(a >= b) return a;
-    else return b;
-}
+
 
 __device__ int CutFindValue(Cut *cut, int *nRef) {
     int value = 0, nOnes = 0;
     for(int i = 0; i < cut->nLeaves; i++) {
-        value += nRef[cut->leaves[i]]; 
+        value += nRef[cut->leaves[i]];
         nOnes += (nRef[cut->leaves[i]] == 1);
     }
     if(cut->nLeaves < 2) return 1001;
@@ -116,7 +111,7 @@ __device__ int FindCut(int idx, Cut *cuts) {
                     ans = i;
             }
     }
-    // 若没有节点数>=3的，则从节点数=2的中找，还没有再找=1的。
+// 若没有节点数>=3的，则从节点数=2的中找，还没有再找=1的。
     cuts[ID(idx, ans)].used = 0;
     return ans;
 }
@@ -142,7 +137,7 @@ __device__ int MergeCutOrdered(Cut a, Cut b, Cut* cut) {
         }
         if (i == a.nLeaves) // a中节点均并入cut
         {
-            if (k == b.nLeaves) 
+            if (k == b.nLeaves)
             {
                 cut->nLeaves = c;
                 return 1;
@@ -448,9 +443,9 @@ __global__ void EvaluateNode(int sz, int *bestout, int *fanin0, int *fanin1, int
                              Library *lib, TableNode* hashTable, int fUseZeros, int numInputs, bool fUpdateLevel) {
     if(blockIdx.x * blockDim.x + threadIdx.x >= sz) return; //对id号节点进行Evaluate
     int id = 1 + blockIdx.x * blockDim.x + threadIdx.x, reduction = -1, bestLevel = 99999999, bestCut = -1, bestOut;
-    /* tableId - MFFC中每个结点id(包含MFFC中以及边界，不含cut)
+/* tableId - MFFC中每个结点id(包含MFFC中以及边界，不含cut)
        tableNum - 结点指向锥外的fanout数量(==0即表示在MFFC中)*/
-    int match[54], tableSize, tableId[TABLE_SIZE], tableNum[TABLE_SIZE]; 
+    int match[54], tableSize, tableId[TABLE_SIZE], tableNum[TABLE_SIZE];
     int matchLevel[54];
     for(int i = 0; i < CUT_SET_SIZE; i++) { //对该节点每个cut遍历
         Cut *cut = cuts + ID(id, i);
@@ -479,6 +474,7 @@ __global__ void EvaluateNode(int sz, int *bestout, int *fanin0, int *fanin1, int
             int in0 = lib->fanin0[Class][j], in1 = lib->fanin1[Class][j];
             assert(matchLevel[in0] != -1 && matchLevel[in1] != -1);
             matchLevel[num] = 1 + (matchLevel[in0] > matchLevel[in1] ? matchLevel[in0] : matchLevel[in1]);
+
             if(match[in0] == -1 || match[in1] == -1 || match[in0] == id || match[in1] == id) continue;
             int nodeId = TableLookup(match[in0], match[in1], (isC >> in0 & 1) ^ lib->isC0[Class][j], (isC >> in1 & 1) ^ lib->isC1[Class][j], hashTable, fanin0, fanin1, isC0, isC1);
             if(nodeId != -1 && !IsDeleted(nodeId, &tableSize, tableId, tableNum)) {
@@ -504,11 +500,11 @@ __global__ void EvaluateNode(int sz, int *bestout, int *fanin0, int *fanin1, int
                 continue;
             if (saved - nodesAdded < reduction || (saved - nodesAdded == reduction && rtLevel >= bestLevel))
                 continue;
-            //记录最好的收益,level,cut-graph
+//记录最好的收益,level,cut-graph
             reduction = saved - nodesAdded;
             bestLevel = rtLevel;
             bestCut = i;
-            bestOut = out; 
+            bestOut = out;
         }
         cut->nLeaves = nleaves;
     }
@@ -557,8 +553,8 @@ __device__ void BuildSubgr(int cur, int Class, Library *lib, int *match, uint64_
     BuildSubgr(in1, Class, lib, match, isC, fanin0, fanin1, isC0, isC1, phase, newTable, sz);
 
     // Build the node
-    // atomicAdd(*old,value) return *old; *old = *old+value
-    int node = atomicAdd(&N, 1); 
+// atomicAdd(*old,value) return *old; *old = *old+value
+    int node = atomicAdd(&N, 1);
     // assert(node < (int) (sz * RATIO));
     node += 1;
     fanin0[node] = match[in0];
@@ -653,7 +649,7 @@ int IsPrime(int n) {
 }
 
 /// @brief 返回n开始下一个素数
-int GetPrime(int n) { 
+int GetPrime(int n) {
     while(!IsPrime(n))
         n++;
     return n;
@@ -695,12 +691,12 @@ __global__ void printCuts(int id, Cut *cuts) {
 /// @param fanin 
 /// @param isC 
 /// @param n 
-/// @return 
+/// @return
 __global__ void Convert(int *fanin, int *isC, int n) {
     int id = blockIdx.x * blockDim.x + threadIdx.x;
     if(id < n) {
-        isC[id] = fanin[id] & 1; 
-        fanin[id] >>= 1; 
+        isC[id] = fanin[id] & 1;
+        fanin[id] >>= 1;
     }
 }
 
@@ -729,7 +725,7 @@ void GPUSolver::Init(int n) {
     cudaStackSize = limit;
     printf("GPUSolver: setting cudaLimitStackSize = %lu\n", limit * 12);
     cudaDeviceSetLimit(cudaLimitStackSize, limit * 12);
-    // *********  重设每个线程的limit堆栈大小为12倍  **********
+// *********  重设每个线程的limit堆栈大小为12倍  **********
     cudaMalloc(&fanin0, static_cast<int> (RATIO * (n + 1) * sizeof(int)));
     cudaMalloc(&fanin1, static_cast<int> (RATIO * (n + 1) * sizeof(int)));
     cudaMalloc(&nRef, (n + 1) * sizeof(int));
@@ -745,7 +741,7 @@ void GPUSolver::Init(int n) {
     ShowMemory();
     cudaMalloc(&selectedCuts, (n + 1) * sizeof(Cut));
     ShowMemory();
-    cudaMalloc(&cuts, CUT_SET_SIZE * (n + 1) * sizeof(Cut));
+    cudaMalloc(&cuts, sizeof(Cut) * CUT_SET_SIZE * (n + 1) );
     ShowMemory();
 }
 
@@ -801,15 +797,15 @@ void GPUSolver::EnumerateAndPreEvaluate(int *level, const vector<int> &levelCoun
     auto startTime = clock();
     Convert<<<BLOCK_NUMBER(n + 1, LARGE_BLOCK_SIZE), LARGE_BLOCK_SIZE>>> (fanin0, isComplement0, (n + 1)); // n+1 * 512的线程网格， 512一维线程块
     Convert<<<BLOCK_NUMBER(n + 1, LARGE_BLOCK_SIZE), LARGE_BLOCK_SIZE>>> (fanin1, isComplement1, (n + 1));
-    Inputs<<<BLOCK_NUMBER(levelCount[0], LARGE_BLOCK_SIZE), LARGE_BLOCK_SIZE>>> (nRef, cuts, levelCount[0]); // levelCount[0] = PIs个数  得到Inputs的Cut（就是自己）     
+    Inputs<<<BLOCK_NUMBER(levelCount[0], LARGE_BLOCK_SIZE), LARGE_BLOCK_SIZE>>> (nRef, cuts, levelCount[0]); // levelCount[0] = PIs个数  得到Inputs的Cut（就是自己）        
     for(int i = 1; i < levelCount.size(); i++)
         CutEnumerate<<<BLOCK_NUMBER(levelCount[i] - levelCount[i - 1], LARGE_BLOCK_SIZE), LARGE_BLOCK_SIZE>>> (fanin0, fanin1, isComplement0, isComplement1, nRef, cuts, levelCount[i - 1], levelCount[i] - levelCount[i - 1]);
     cudaDeviceSynchronize(); // 多个线程异步进行，计算完成时需要进行同步
     ENUM_TIME += clock() - startTime;
     startTime = clock();
     BuildHashTable<<<BLOCK_NUMBER(n, LARGE_BLOCK_SIZE), LARGE_BLOCK_SIZE>>> (hashTable, n, fanin0, fanin1, isComplement0, isComplement1);           
-    EvaluateNode<<<BLOCK_NUMBER(n, 768), 768>>> (n, bestSubgraph, fanin0, fanin1, isComplement0, isComplement1, nodeLevels, cuts, selectedCuts, nRef, lib, hashTable, fUseZeros == true, numInputs, fUpdateLevel);
-        gpuErrchk( cudaDeviceSynchronize() );
+    EvaluateNode<<<BLOCK_NUMBER(n, LARGE_BLOCK_SIZE), LARGE_BLOCK_SIZE>>> (n, bestSubgraph, fanin0, fanin1, isComplement0, isComplement1, nodeLevels, cuts, selectedCuts, nRef, lib, hashTable, fUseZeros == true, numInputs, fUpdateLevel);
+    gpuErrchk( cudaDeviceSynchronize() );
     auto code = cudaGetLastError();
     if (code) std::cerr << "Error code " << code << " in EvaluateNode " << std::endl;
 
@@ -828,7 +824,7 @@ int GPUSolver::ReplaceSubgraphs(int n, int *CPUfanin0, int *CPUfanin1, int *CPUp
     gpuErrchk( cudaDeviceSynchronize() ); // wait until N
     auto code = cudaGetLastError();
     if (code) std::cerr << "Error code " << code << " after replace " << std::endl;
-    printf("N = %d   n = %d   n * RATIO = %d\n", N, n, static_cast<int> (RATIO * n));
+printf("N = %d   n = %d   n * RATIO = %d\n", N, n, static_cast<int> (RATIO * n));
     Revert<<<BLOCK_NUMBER(N + 1, LARGE_BLOCK_SIZE), LARGE_BLOCK_SIZE>>>(fanin0, isComplement0, N + 1);
     Revert<<<BLOCK_NUMBER(N + 1, LARGE_BLOCK_SIZE), LARGE_BLOCK_SIZE>>>(fanin1, isComplement1, N + 1);
     cudaDeviceSynchronize();
@@ -920,7 +916,7 @@ void CPUSolver::Rewrite(bool fUseZeros, bool GPUReplace, bool fUpdateLevel) {
 
     // prt << "Rewrite Iteration" << endl;
     ReadLibrary();
-    gpuSolver->CopyLib(lib); 
+    gpuSolver->CopyLib(lib);
     LevelCount();
     gpuSolver->EnumerateAndPreEvaluate(level, levelCount, n, fanin0, fanin1, ref, fUseZeros, numInputs, fUpdateLevel);
     // prt << "Finished GPU enumeration and pre-evaluation" << endl;
@@ -1358,6 +1354,12 @@ void CPUSolver::Reorder() {
     for(int i = 1; i <= n; i++)
         level[i] = i <= numInputs ? 0 : -1; //PIsLevel初始=0，-1为未赋值
     auto startTime2 = clock();
+    
+    // skipping the deleted nodes might cause errors, so do not skip them
+    // the redundant nodes can be deleted by strash 
+    for(int i = numInputs + 1; i <= n; i++) 
+        isDeleted[i] = 0;
+
     for(int i = numInputs + 1; i <= n; i++) 
         if(!isDeleted[i]) TopoSort(i);
     printf(" *** Topo sort time: %.2lf sec\n", (clock() - startTime2) / (double) CLOCKS_PER_SEC);
@@ -1369,7 +1371,7 @@ void CPUSolver::Reorder() {
         temp0[i] = fanin0[i];
         temp1[i] = fanin1[i];
     }
-    // 按照拓扑序列重新给节点赋编号
+// 按照拓扑序列重新给节点赋编号
     for(int i = numInputs + 1; i <= n; i++) if(!isDeleted[i]) {
         fanin0[order[i]] = order[id(temp0[i])] * 2 + isC(temp0[i]);
     }
@@ -1457,5 +1459,4 @@ void CPUSolver::EvalAndReplace(int id, Cut &cut) {
         //replaceTime += chrono::duration<double> (clock::now() - startTime).count();
     }
 }
-
 

@@ -52,7 +52,7 @@ int balanceHandler(AIGMan & aigman, const std::vector<std::string> & vLiterals) 
 }
 
 int rewriteHandler(AIGMan & aigman, const std::vector<std::string> & vLiterals) {
-    bool fUseZeros = false, fGPUDeduplicate = false, fUpdateLevel = false;
+    bool fUseZeros = false, fGPUDeduplicate = true, fUpdateLevel = false;
     for (int i = 1; i < vLiterals.size(); i++) {
         if (vLiterals[i] == "-z") {
             fUseZeros = true;
@@ -146,6 +146,7 @@ int resyn2Handler(AIGMan & aigman, const std::vector<std::string> & vLiterals) {
     aigman.rewrite(true, true);
     aigman.rewrite(true, true);
     aigman.balance(0);
+    aigman.strash(false, true);
 
     return 0;
 }
