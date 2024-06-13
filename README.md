@@ -8,6 +8,7 @@ a GPU-based logic synthesis tool developed by [CULS](https://github.com/cuhk-eda
 2024/1/25: plantuml绘制几个算法的类图 <br>
 2024/1/26: abc read命令源码阅读+注释+plantuml
 
+>tips: need to delete static definition of refactor/rewrite/balance in abc/src/abci/abc.c since they're externed in abc_patch_gpu_test.cu
 ## Dependencies
 * CMake >= 3.8
 * GCC >= 7.5.0
