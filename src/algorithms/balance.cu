@@ -840,6 +840,7 @@ __global__ void findLevelNodeRanges(const int * vLastAppearLevel, int * vLastApp
             vLastAppearLevelRanges[vLastAppearLevel[idx]] = idx + 1;
         }
     }
+    
 }
 
 __global__ void parseOutputRes(const uint64 * vReconstructedKeys, 

@@ -119,7 +119,7 @@ __device__ int evalSubgNumAdded(int rootId, int * pNewRootLevel, const int * vCu
                                 int nNodeMax, int nLevelMax, const int * pLevels, const int * vNode2ConeResynIdx,
                                 const uint64 * htKeys, const uint32 * htValues, int htCapacity,
                                 const uint64 * vSubgTable, const int * vSubgLinks, const int * vSubgLens, 
-                                int subgIdx) {
+                                int subgIdx, bool fUpdateLevel) {
     int i, counter, temp;
     int lit0, lit1, id0, id1, func0, func1, currId, fCompRoot, newLevel;
     uint32 retrId;
@@ -229,7 +229,7 @@ __device__ int evalSubgNumAdded(int rootId, int * pNewRootLevel, const int * vCu
     }
     *pNewRootLevel = vLevels[length - 1];
     // printf("********* Old Level: %d, New Level: %d", savedLevel, *pNewRootLevel);
-    if(*pNewRootLevel > savedLevel) return -1;
+    if(!fUpdateLevel && *pNewRootLevel > savedLevel) return -1;
     return counter;
 }
 
@@ -237,7 +237,7 @@ __global__ void evalFactoredForm(const int * vResynRoots, const int * vCuts, con
                                  const int * vNumSaved, const int * pLevels, const int * vNode2ConeResynIdx, 
                                  const uint64 * htKeys, const uint32 * htValues, int htCapacity,
                                  const uint64 * vSubgTable, const int * vSubgLinks, const int * vSubgLens, 
-                                 int * vSelectedSubgInd, int nResyn) {
+                                 int * vSelectedSubgInd, int nResyn, bool fUpdateLevel) {
     int nThreads = gridDim.x * blockDim.x;
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     int coneIdx, rootId;
@@ -259,7 +259,7 @@ __global__ void evalFactoredForm(const int * vResynRoots, const int * vCuts, con
         nAdded = evalSubgNumAdded(
             rootId, &nNewLevel, vCuts + startIdx, 
             nVars, nSaved, 1000000000, pLevels, vNode2ConeResynIdx, 
-            htKeys, htValues, htCapacity, vSubgTable, vSubgLinks, vSubgLens, idx
+            htKeys, htValues, htCapacity, vSubgTable, vSubgLinks, vSubgLens, idx, fUpdateLevel
         );
         nOtherAdded = __shfl_xor_sync(warpMask, nAdded, 1); // nAdded of the corresponding negated subgraph
         nOtherNewLevel = __shfl_xor_sync(warpMask, nNewLevel, 1);
@@ -696,7 +696,7 @@ reorder(int * vFanin0New, int * vFanin1New, int * pOuts,
 
 
 std::tuple<int, int *, int *, int *, int> 
-refactorMFFCPerform(bool fUseZeros, int cutSize,
+refactorMFFCPerform(bool fUseZeros, bool fUpdateLevel, int cutSize,
                     int nObjs, int nPIs, int nPOs, int nNodes, 
                     const int * d_pFanin0, const int * d_pFanin1, const int * d_pOuts, 
                     const int * d_pNumFanouts, const int * d_pLevel, 
@@ -890,7 +890,7 @@ refactorMFFCPerform(bool fUseZeros, int cutSize,
     evalFactoredForm<<<NUM_BLOCKS(nResynGraphs, THREAD_PER_BLOCK), THREAD_PER_BLOCK>>>(
     // evalFactoredForm<<<1, 2>>>(
         vResynRoots, vCuts, vCutRanges, vNumSaved, d_pLevel, vNode2ConeResynIdx, 
-        htKeys, htValues, htCapacity, vSubgTable, vSubgLinks, vSubgLens, vSelectedSubgInd, nResyn
+        htKeys, htValues, htCapacity, vSubgTable, vSubgLinks, vSubgLens, vSelectedSubgInd, nResyn, fUpdateLevel
     );
     gpuErrchk( cudaPeekAtLastError() );
     gpuErrchk( cudaDeviceSynchronize() );

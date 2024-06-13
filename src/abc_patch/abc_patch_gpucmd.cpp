@@ -7,6 +7,7 @@
 #include "misc/string_utils.h"
 
 using strUtil::descWithDefault, strUtil::concat;
+using namespace abcPatch;
 
 namespace abcPatch {
 
@@ -197,7 +198,7 @@ int Abc_CommandGpuResyn2(Abc_Frame_t * pAbc, int argc, char ** argv) {
     pMan->rewrite(true, true);
     pMan->rewrite(true, true);
     pMan->balance(0);
-    pMan->strash(false,true);
+    pMan->strash(false, true);
 
     return 0;
 }
@@ -243,7 +244,7 @@ void ResubExecute(Abc_Frame_t * pAbc, int K, int N) {
         cmd += " -N " + std::to_string(N);
 
     const char* cmdChar = cmd.data();
-    printf("Executing Resub \n");
+    std::printf("Executing Resub \n");
     Cmd_CommandExecute(pAbc, cmdChar);
 }
 
@@ -266,7 +267,7 @@ int Abc_CommandGpuResub(Abc_Frame_t * pAbc, int argc, char ** argv){
         cmd += " -N " + std::to_string(N);
 
     const char* cmdChar = cmd.data();
-    printf("Executing Resub \n");
+    std::printf("Executing Resub \n");
     Cmd_CommandExecute(pAbc, cmdChar);
 
     return 0;
@@ -367,3 +368,124 @@ void registerAllAbcCommands(Abc_Frame_t * pAbc) {
 }
 
 } // namespace abcPatch
+
+
+// raina gpu cmds
+int Raina_CommandGpuWrite(Abc_Frame_t * pAbc, std::string path){
+    if (!checkGpuManState())
+        return 1;
+    getGpuMan()->saveFile(path.c_str());
+    return 0;
+}
+
+int Raina_CommandGpuRead(Abc_Frame_t * pAbc, std::string path){
+    int ret = getGpuMan()->readFile(path.c_str());
+    if (ret)
+        gpuManSetActive();
+    else
+        gpuManSetInactive();
+
+    return 1 - ret;
+}
+
+int Raina_CommandGpuTime(Abc_Frame_t * pAbc){
+    if (!checkGpuManState())
+        return 1;
+
+    getGpuMan()->printTime();
+    return 0;
+}
+
+int Raina_CommandGpuPrintStats(Abc_Frame_t * pAbc){
+    if (!checkGpuManState())
+        return 1;
+
+    getGpuMan()->printStats();
+    return 0;
+}
+
+int Raina_CommandGpuBalance(Abc_Frame_t * pAbc){
+    if (!checkGpuManState())
+        return 1;
+
+    getGpuMan()->balance(1);
+    return 0;
+}
+
+int Raina_CommandGpuRewrite(Abc_Frame_t * pAbc, bool fUseZeros, bool fUpdateLevel){
+    if (!checkGpuManState())
+        return 1;
+
+    getGpuMan()->rewrite(fUseZeros, true, fUpdateLevel);
+    return 0;
+}
+
+int Raina_CommandGpuRefactor(Abc_Frame_t * pAbc, bool fUseZeros, bool fAlgMFFC, int cutSize){
+    if (!checkGpuManState())
+        return 1;
+
+    getGpuMan()->refactor(fAlgMFFC, fUseZeros, cutSize);
+    return 0;
+}
+
+int Raina_CommandGpuStrash(Abc_Frame_t * pAbc){
+    if (!checkGpuManState())
+        return 1;
+
+    getGpuMan()->strash(false, true);
+    return 0;
+
+}
+int Raina_CommandGpuResyn2(Abc_Frame_t * pAbc, int cutSize, bool fUpdateLevel){
+    if (!checkGpuManState())
+        return 1;
+    AIGMan * pMan = getGpuMan();
+    
+    pMan->balance(1);
+    pMan->rewrite(false, true, fUpdateLevel);
+    pMan->refactor(true, false, fUpdateLevel, cutSize);
+    pMan->strash(false, true);
+    pMan->balance(1);
+    pMan->rewrite(false, true, fUpdateLevel);
+    pMan->rewrite(true, true, fUpdateLevel);
+    pMan->rewrite(true, true, fUpdateLevel);
+    pMan->balance(0);
+    pMan->refactor(true, true, fUpdateLevel, cutSize);
+    pMan->strash(false, true);
+    pMan->rewrite(true, true, fUpdateLevel);
+    pMan->rewrite(true, true, fUpdateLevel);
+    pMan->balance(0);
+    pMan->strash(false, true);
+
+    return 0;
+}
+int Raina_CommandGpuGet(Abc_Frame_t * pAbc){
+    Abc_Ntk_t * pNtk = Abc_FrameReadNtk(pAbc);
+    AIGMan * pMan = getGpuMan();
+
+    bool ret = AbcNtkToGpuMan(pNtk, pMan);
+    if (ret) {
+        gpuManSetActive();
+        pMan->setAigCreated(1);
+    } else {
+        gpuManSetInactive();
+        pMan->setAigCreated(0);
+    }
+    pMan->setPrevCmdRewrite(0);
+    
+    return ret ? 0 : 1;
+}
+int Raina_CommandGpuPut(Abc_Frame_t * pAbc){
+    if (!checkGpuManState())
+        return 1;
+    
+    AIGMan * pMan = getGpuMan();
+    Abc_Ntk_t * pNtkNew = GpuManToAbcNtk(pMan);
+    Abc_FrameReplaceCurrentNetwork(pAbc, pNtkNew);
+
+    gpuManSetInactive();
+    pMan->setAigCreated(0);
+    pMan->setPrevCmdRewrite(0);
+
+    return 0;
+}

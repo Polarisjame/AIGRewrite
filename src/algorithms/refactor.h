@@ -10,7 +10,7 @@ refactorPerform(bool fUseZeros, int cutSize,
                 const int * d_pNumFanouts, const int * d_pLevel, 
                 int * pOuts, int * pNumFanouts);
 std::tuple<int, int *, int *, int *, int> 
-refactorMFFCPerform(bool fUseZeros, int cutSize,
+refactorMFFCPerform(bool fUseZeros, bool fUpdateLevel, int cutSize,
                     int nObjs, int nPIs, int nPOs, int nNodes, 
                     const int * d_pFanin0, const int * d_pFanin1, const int * d_pOuts, 
                     const int * d_pNumFanouts, const int * d_pLevel, 

@@ -23,8 +23,7 @@ void gpuManSetInactive() {
 }
 
 void showPatchInfo() {
-    printf("Enhanced with GPU-based algorithm implementations, \n");
-    // printf("by the Chinese University of Hong Kong\n");
+    std::printf("Enhanced with GPU-based algorithm implementations, \n");
 }
 
 // called during ABC startup
