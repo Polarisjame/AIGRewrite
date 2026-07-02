@@ -833,7 +833,7 @@ __global__ void coverFindingToTable(int * vNodes, int * vNodesStatus, int * vLas
 __global__ void findLevelNodeRanges(const int * vLastAppearLevel, int * vLastAppearLevelRanges, const int nCovers) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx == nCovers - 1) {
-        printf("*** Max Level: %d\n", vLastAppearLevel[idx]);
+        // printf("*** Max Level: %d\n", vLastAppearLevel[idx]);
         vLastAppearLevelRanges[vLastAppearLevel[idx]] = idx + 1;
     } else if (idx < nCovers - 1) {
         if (vLastAppearLevel[idx] < vLastAppearLevel[idx + 1]) {

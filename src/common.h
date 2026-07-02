@@ -2,6 +2,8 @@
 
 #include <iostream>
 #include <cassert>
+#include <thrust/remove.h>  
+#include <thrust/count.h>
 #include <thrust/iterator/zip_iterator.h>
 #include <thrust/functional.h>
 
@@ -24,6 +26,8 @@ inline unsigned invertConstTrueFalse(unsigned lit) {
 }
 
 # ifdef DISABLE_PRINT
+using printf_t = int (*)(const char*, ...);
+inline printf_t real_printf = std::printf;
 
 inline int printf(const char *format, ...)
 {

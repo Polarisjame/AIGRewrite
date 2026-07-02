@@ -27,7 +27,7 @@ int getNodesGpu(AIGMan* gpuMan){
     else{
         nNodes = gpuMan->nNodes;
     }
-
+    
     return nNodes;
 }
 

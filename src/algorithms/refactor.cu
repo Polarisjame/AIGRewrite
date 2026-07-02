@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cassert>
+#include <algorithm>
 #include <ctime>
 #include <tuple>
 #include <functional>
@@ -19,6 +20,53 @@
 #include "misc/print.cuh"
 
 __managed__ int nNewObjs;
+
+static void logGpuMemInfo(const char * tag) {
+    size_t freeBytes = 0, totalBytes = 0;
+    cudaError_t memInfoErr = cudaMemGetInfo(&freeBytes, &totalBytes);
+    if (memInfoErr == cudaSuccess) {
+        std::fprintf(stderr, "[refactor] %s: GPU free=%zuMB total=%zuMB\n",
+                     tag, freeBytes >> 20, totalBytes >> 20);
+        return;
+    }
+    std::fprintf(stderr, "[refactor] %s: cudaMemGetInfo failed: %s\n",
+                 tag, cudaGetErrorString(memInfoErr));
+}
+
+static void reportKernelLaunchFailure(const char * kernelName, cudaError_t err, size_t stackSize,
+                                      int gridDimX, int blockDimX, int workItems) {
+    std::fprintf(stderr,
+                 "[refactor] %s launch failed: %s (grid=%d, block=%d, work=%d, stack=%zu)\n",
+                 kernelName, cudaGetErrorString(err), gridDimX, blockDimX, workItems, stackSize);
+}
+
+struct ResynLaunchConfig {
+    int blockDim;
+    int gridDim;
+    int workerThreads;
+    size_t workerBytes;
+    size_t poolBytes;
+    size_t budgetBytes;
+};
+
+static ResynLaunchConfig chooseResynLaunchConfig(int nResyn, size_t freeBytes, size_t stackSize) {
+    const size_t vecsMemBytes = sizeof(VecsMem<unsigned, sop::ISOP_FACTOR_MEM_CAP>);
+    const size_t subgBytes = 2 * sizeof(subgUtil::Subg<MAX_SUBG_SIZE>);
+    const size_t workerBytes = vecsMemBytes + subgBytes + stackSize;
+    const size_t budgetBytes = freeBytes * 3 / 4;
+    const int maxWorkersByMem = std::max<int>(1, (int)(budgetBytes / workerBytes));
+
+    int blockDim = std::min(THREAD_PER_BLOCK, nResyn);
+    blockDim = std::min(blockDim, maxWorkersByMem);
+    blockDim = std::max(blockDim, 1);
+
+    int maxGridDim = std::max(1, maxWorkersByMem / blockDim);
+    int gridDim = std::min(NUM_BLOCKS(nResyn, blockDim), maxGridDim);
+    gridDim = std::max(gridDim, 1);
+
+    const int workerThreads = gridDim * blockDim;
+    return {blockDim, gridDim, workerThreads, workerBytes, vecsMemBytes * (size_t)workerThreads, budgetBytes};
+}
 
 struct isNotSmallMffc {
     __host__ __device__
@@ -1011,6 +1059,7 @@ refactorPerform(bool fUseZeros, int cutSize,
     unsigned * vTruth, * vTruthElem;
     uint64 * vSubgTable;
     int * vSubgLinks, * vSubgLens, * pSubgTableNext;
+    VecsMem<unsigned, sop::ISOP_FACTOR_MEM_CAP> * vVecsMemPool;
     int * vChoicesLit;
     int * vFanin0New, * vFanin1New;
     uint64 * vReconstructedKeys;
@@ -1149,27 +1198,44 @@ refactorPerform(bool fUseZeros, int cutSize,
     // allocate global subgraph table
     // vSubgLinks indicating idx of next row, if one row in vSubgTable is not enough:
     // -1: unvisited, 0: last row, >0: next row idx
-    cudaMalloc(&vSubgTable, 2 * nResyn * SUBG_TABLE_SIZE * sizeof(uint64));
-    cudaMalloc(&vSubgLinks, 2 * nResyn * sizeof(int));
-    cudaMalloc(&vSubgLens, nResyn * sizeof(int));
-    cudaMalloc(&pSubgTableNext, sizeof(int));
-    cudaMemset(vSubgLinks, -1, 2 * nResyn * sizeof(int));
-    cudaMemset(vSubgLens, -1, nResyn * sizeof(int));
-    cudaMemcpy(pSubgTableNext, &nResyn, sizeof(int), cudaMemcpyHostToDevice);
-    cudaDeviceSynchronize();
+    gpuErrchk( cudaMalloc(&vSubgTable, 2 * nResyn * SUBG_TABLE_SIZE * sizeof(uint64)) );
+    gpuErrchk( cudaMalloc(&vSubgLinks, 2 * nResyn * sizeof(int)) );
+    gpuErrchk( cudaMalloc(&vSubgLens, nResyn * sizeof(int)) );
+    gpuErrchk( cudaMalloc(&pSubgTableNext, sizeof(int)) );
+    gpuErrchk( cudaMemset(vSubgLinks, -1, 2 * nResyn * sizeof(int)) );
+    gpuErrchk( cudaMemset(vSubgLens, -1, nResyn * sizeof(int)) );
+    gpuErrchk( cudaMemcpy(pSubgTableNext, &nResyn, sizeof(int), cudaMemcpyHostToDevice) );
+    gpuErrchk( cudaDeviceSynchronize() );
 
     // isop & algebraic factoring
     printf("Start resyn\n");
     auto resynStartTime = clock();
+    size_t freeBytes = 0, totalBytes = 0;
+    size_t stackSize = 0;
+    gpuErrchk( cudaDeviceGetLimit(&stackSize, cudaLimitStackSize) );
+    gpuErrchk( cudaMemGetInfo(&freeBytes, &totalBytes) );
+    const ResynLaunchConfig resynCfg = chooseResynLaunchConfig(nResyn, freeBytes, stackSize);
+    std::fprintf(stderr,
+                 "[refactor] resynCut config: nResyn=%d workers=%d grid=%d block=%d worker_bytes=%zu pool=%zuMB budget=%zuMB free=%zuMB stack=%zu\n",
+                 nResyn, resynCfg.workerThreads, resynCfg.gridDim, resynCfg.blockDim, resynCfg.workerBytes,
+                 resynCfg.poolBytes >> 20, resynCfg.budgetBytes >> 20, freeBytes >> 20, stackSize);
+    gpuErrchk( cudaMalloc(&vVecsMemPool, resynCfg.poolBytes) );
+    gpuErrchk( cudaMemset(vVecsMemPool, 0, resynCfg.poolBytes) );
+    logGpuMemInfo("pre-resynCut");
     // resynCut<<<1, 1>>>(
-    resynCut<<<NUM_BLOCKS(nResyn, THREAD_PER_BLOCK), THREAD_PER_BLOCK>>>(
+    resynCut<<<resynCfg.gridDim, resynCfg.blockDim>>>(
         vResynInd, vCutTable, vCutSizes, vNumSaved, 
         htKeys, htValues, htCapacity, d_pLevel, 
         vSubgTable, vSubgLinks, vSubgLens, pSubgTableNext,
+        vVecsMemPool,
         vTruth, vTruthRanges, vTruthElem, cutSize, nResyn
     );
-    gpuChkStackOverflow( cudaPeekAtLastError() );
+    cudaError_t resynLaunchErr = cudaPeekAtLastError();
+    if (resynLaunchErr != cudaSuccess)
+        reportKernelLaunchFailure("resynCut", resynLaunchErr, stackSize, resynCfg.gridDim, resynCfg.blockDim, nResyn);
+    gpuErrchk( resynLaunchErr );
     gpuErrchk( cudaDeviceSynchronize() );
+    logGpuMemInfo("post-resynCut");
     printf("Finished resyn, time = %.2lf secs\n", (clock() - resynStartTime) / (double) CLOCKS_PER_SEC);
 
 
@@ -1201,6 +1267,7 @@ refactorPerform(bool fUseZeros, int cutSize,
     cudaFree(vSubgLinks);
     cudaFree(vSubgLens);
     cudaFree(pSubgTableNext);
+    cudaFree(vVecsMemPool);
 
     cudaMalloc(&vReconstructedKeys, nNewObjs * sizeof(uint64));
     cudaMalloc(&vReconstructedIds, nNewObjs * sizeof(uint32));

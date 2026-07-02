@@ -1,8 +1,15 @@
-cmake_minimum_required(VERSION 3.3.0)
+cmake_minimum_required(VERSION 3.5.0)
 
 include(CMakeParseArguments)
 include(CheckCCompilerFlag)
 include(CheckCXXCompilerFlag)
+
+string(REPLACE "-fno-exceptions" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}") 
+string(REPLACE "-fno-exceptions" "" CMAKE_C_FLAGS    "${CMAKE_C_FLAGS}")
+string(REPLACE "-fno-exceptions" "" CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS}")
+
+add_definitions(-DDISABLE_PRINT)
+add_compile_options(-fexceptions -funwind-tables) 
 
 function(addprefix var prefix)
     foreach( s ${ARGN} )
@@ -19,7 +26,7 @@ function(addprefix_g var prefix)
 endfunction()
 
 # All print has been disabled in ABC due to this macro, if you want to use print, comment this line
-#add_definitions(-DABC_WITHOUT_PRINT)
+# add_definitions(-DABC_WITHOUT_PRINT)
 
 # filter out flags that are not appropriate for the compiler being used
 function(target_compile_options_filtered target visibility)
@@ -40,8 +47,7 @@ function(target_compile_options_filtered target visibility)
     endforeach()
 endfunction()
 
-set(GPULS_CUDA_FLAGS -arch=compute_89 -code=compute_89,sm_89)
-set(GPULS_CUDA_FLAGS ${GPULS_CUDA_FLAGS} -std=c++17 -O3 --extended-lambda)
+set(GPULS_CUDA_FLAGS -std=c++17 -O3 --extended-lambda -Xcompiler=-fexceptions)
 
 project(abcg C CXX CUDA)
 
@@ -98,6 +104,9 @@ extract_var(SEPARATOR_LIBS ABC_LIBS ${MAKE_OUTPUT})
 extract_var(SEPARATOR_CFLAGS ABC_CFLAGS ${MAKE_OUTPUT})
 extract_var(SEPARATOR_CXXFLAGS ABC_CXXFLAGS ${MAKE_OUTPUT})
 
+string(REPLACE "-fno-exceptions" "" ABC_CFLAGS    "${ABC_CFLAGS}")
+string(REPLACE "-fno-exceptions" "" ABC_CXXFLAGS  "${ABC_CXXFLAGS}")
+
 if(ABC_USE_NAMESPACE)
     set_source_files_properties(${ABC_SRC} PROPERTIES LANGUAGE CXX)
 endif()
@@ -117,9 +126,11 @@ add_library(libabc SHARED ${ABC_SRC})
 # message(STATUS ${ABC_SRC})
 # message(${CMAKE_CURRENT_SOURCE_DIR})
 abc_properties(libabc PUBLIC)
+target_compile_options(libabc PRIVATE -w -fexceptions -funwind-tables)
 set_property(TARGET libabc PROPERTY OUTPUT_NAME abc)
 
-file(GLOB GPULS_CPU_SOURCES "sec/*.cpp")
+
+file(GLOB GPULS_CPU_SOURCES "src/*.cpp")
 file(GLOB GPULS_GPU_SOURCES 
     "src/*.cu"
     "src/aig/*.cu"
@@ -134,30 +145,37 @@ list(FILTER GPULS_CPU_SOURCES EXCLUDE REGEX ".*/src/main\.cpp")
 set(GPU_TEST_MAIN "./src/abc_patch/gpu_test/abc_patch_main.cpp")
 list(FILTER GPULS_PATCH_SOURCES EXCLUDE REGEX ${GPU_TEST_MAIN})
 
-add_library(abcgpu SHARED ${GPULS_CPU_SOURCES} ${GPULS_GPU_SOURCES} ${GPULS_PATCH_SOURCES})
+# add_library(abcgpu SHARED ${GPULS_CPU_SOURCES} ${GPULS_GPU_SOURCES} ${GPULS_PATCH_SOURCES})
 
-target_link_libraries(abcgpu PRIVATE libabc)
+# target_link_libraries(abcgpu PRIVATE libabc)
 
-target_include_directories(abcgpu PRIVATE "src")
-target_include_directories(abcgpu PRIVATE "src/hash_table")
-# target_include_directories(abcgpu PUBLIC "src/base")
-target_include_directories(abcgpu PUBLIC "include")
+# target_include_directories(abcgpu PRIVATE "src")
+# target_include_directories(abcgpu PRIVATE "src/hash_table")
+# # target_include_directories(abcgpu PUBLIC "src/base")
+# target_include_directories(abcgpu PUBLIC "include")
 
-abc_properties(abcgpu PRIVATE)
+# abc_properties(abcgpu PRIVATE)
 
 file(GLOB GPULS_PATCH_TEST "src/abc_patch/gpu_test/src/*.cpp"
                             "src/abc_patch/gpu_test/src/*.cu")
-add_executable(abcg ${GPU_TEST_MAIN} ${GPULS_PATCH_TEST})
+add_executable(abcg ${GPULS_CPU_SOURCES} ${GPULS_GPU_SOURCES} 
+                    ${GPULS_PATCH_SOURCES} ${ABC_MAIN_SRC})
 
-target_link_libraries(abcg PRIVATE abcgpu)
+
+# target_link_libraries(abcg PRIVATE abcgpu)
 target_link_libraries(abcg PRIVATE libabc)
+set_target_properties(abcg PROPERTIES CUDA_ARCHITECTURES "86;89")
 target_include_directories(abcg PRIVATE "src")
-target_include_directories(abcg PRIVATE "src/abc_patch/gpu_test")
+target_include_directories(abcg PRIVATE "src/hash_table")
+target_include_directories(abcg PUBLIC "include")
 abc_properties(abcg PRIVATE)
 
-target_compile_options(abcgpu PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:${GPULS_CUDA_FLAGS}>)
-target_compile_options(abcg PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:${GPULS_CUDA_FLAGS}>)
-target_compile_options(libabc PRIVATE -w)
+# target_compile_options(abcgpu PRIVATE 
+#     $<$<COMPILE_LANGUAGE:CUDA>:${GPULS_CUDA_FLAGS}> 
+#     $<$<COMPILE_LANGUAGE:CXX>:-fexceptions -funwind-tables>)
+target_compile_options(abcg PRIVATE 
+  $<$<COMPILE_LANGUAGE:CUDA>:${GPULS_CUDA_FLAGS}>
+  $<$<COMPILE_LANGUAGE:CXX>:-fexceptions -funwind-tables>)
 # add_executable(yosys-abc ${ABC_MAIN_SRC})
 # target_link_libraries(yosys-abc PRIVATE libabc)
 # abc_properties(yosys-abc PRIVATE)

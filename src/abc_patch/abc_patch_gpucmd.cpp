@@ -2,6 +2,8 @@
 #include <iostream>
 #include <string>
 #include "CLI11.hpp"
+// #include <cuda_runtime.h>
+
 
 #include "abc_patch/abc_patch_int.h"
 #include "misc/string_utils.h"
@@ -109,7 +111,7 @@ int Abc_CommandGpuBalance(Abc_Frame_t * pAbc, int argc, char ** argv) {
 }
 
 int Abc_CommandGpuRewrite(Abc_Frame_t * pAbc, int argc, char ** argv) {
-    bool fUseZeros = false, fGPUDeduplicate = false, fUpdateLevel = false;
+    bool fUseZeros = false, fGPUDeduplicate = true, fUpdateLevel = false;
 
     CLI::App parser("Perform GPU AIG rewriting (DAC'22)");
     parser.add_flag("-z", fUseZeros, "if provided, allow zero gain replacement");
@@ -145,7 +147,7 @@ int Abc_CommandGpuRefactor(Abc_Frame_t * pAbc, int argc, char ** argv) {
 
     if (!parseOptions(parser, argc, argv) || !checkGpuManState())
         return 1;
-    
+
     getGpuMan()->refactor(fAlgMFFC, fUseZeros, cutSize);
     return 0;
 }
@@ -349,6 +351,7 @@ int Abc_CommandGpuCompress2rs(Abc_Frame_t * pAbc, int argc, char ** argv){
 
 // register all handlers to ABC
 void registerAllAbcCommands(Abc_Frame_t * pAbc) {
+    // cudaSetDevice(1);
     Cmd_CommandAdd(pAbc, "GPU", "gread", Abc_CommandGpuRead, 0);
     Cmd_CommandAdd(pAbc, "GPU", "gwrite", Abc_CommandGpuWrite, 0);
     Cmd_CommandAdd(pAbc, "GPU", "gtime", Abc_CommandGpuTime, 0);

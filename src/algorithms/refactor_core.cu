@@ -18,7 +18,7 @@ __device__ int evaluateSubg(int rootId, int * pNewRootLevel, const int * vCuts, 
     uint32 retrId;
     int vFuncs[SUBG_CAP], vLevels[SUBG_CAP];
 
-    int savedLevel = pLevels[rootId];
+    // int savedLevel = pLevels[rootId];
     // check the case of the resyned cut is a const or a single var of cut nodes
     if (subg->nSize == nVars + 1) {
         subgUtil::unbindAndNodeKeyFlag(subg->pArray[nVars], &lit0, &lit1, &fCompRoot);
@@ -146,24 +146,28 @@ __device__ void getSubgTruth(subgUtil::Subg<SUBG_CAP> * subg, const int * vCuts,
 __global__ void resynCut(const int * vResynInd, const int * vCutTable, const int * vCutSizes, const int * vNumSaved, 
                          const uint64 * htKeys, const uint32 * htValues, int htCapacity, const int * pLevels, 
                          uint64 * vSubgTable, int * vSubgLinks, int * vSubgLens, int * pSubgTableNext,
+                         VecsMem<unsigned, ISOP_FACTOR_MEM_CAP> * vVecsMemPool,
                          unsigned * vTruth, const int * vTruthRanges, const unsigned * vTruthElem, int nMaxCutSize, int nResyn) {
     int nThreads = gridDim.x * blockDim.x;
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    int workerIdx = blockIdx.x * blockDim.x + threadIdx.x;
+    int idx = workerIdx;
     int rootId;
     int nVars, nWords, nSaved, nAdded0, nAdded1;
     int nNewLevel0, nNewLevel1;
     int startIdx, endIdx;
-    VecsMem<unsigned, ISOP_FACTOR_MEM_CAP> vecsMem;
     subgUtil::Subg<SUBG_CAP> subg0, subg1;
     subgUtil::Subg<SUBG_CAP> * pSubg;
     int fSelectedSubg;
 
     for (; idx < nResyn; idx += nThreads) {
+        VecsMem<unsigned, ISOP_FACTOR_MEM_CAP> * vecsMem = vVecsMemPool + workerIdx;
+
         rootId = vResynInd[idx];
         nVars = vCutSizes[rootId];
         nSaved = vNumSaved[rootId];
         nWords = dUtils::TruthWordNum(nVars);
         fSelectedSubg = -1;
+        vecsMem->nSize = 0;
 
         startIdx = (idx == 0 ? 0 : vTruthRanges[idx - 1]);
         endIdx = vTruthRanges[idx];
@@ -180,8 +184,8 @@ __global__ void resynCut(const int * vResynInd, const int * vCutTable, const int
         // if (truthUtil::isConst1(vTruth + startIdx, nVars))
         //     printf(" ** encountered const 1 truth table!\n");
 
-        minatoIsop(vTruth + startIdx, nVars, &vecsMem);
-        sopFactor(vecsMem.pArray, vecsMem.nSize, 0, &vCutTable[rootId * CUT_TABLE_SIZE], nVars, &vecsMem, &subg0);
+        minatoIsop(vTruth + startIdx, nVars, vecsMem);
+        sopFactor(vecsMem->pArray, vecsMem->nSize, 0, &vCutTable[rootId * CUT_TABLE_SIZE], nVars, vecsMem, &subg0);
         nAdded0 = evaluateSubg(rootId, &nNewLevel0, &vCutTable[rootId * CUT_TABLE_SIZE], 
                               nVars, nSaved, 1000000000, pLevels, htKeys, htValues, htCapacity, &subg0);
         if (nAdded0 > -1) {
@@ -190,8 +194,8 @@ __global__ void resynCut(const int * vResynInd, const int * vCutTable, const int
 
         // check isop + factor in the complemented case
         truthUtil::truthNot(vTruth + startIdx, vTruth + startIdx, nVars);
-        minatoIsop(vTruth + startIdx, nVars, &vecsMem);
-        sopFactor(vecsMem.pArray, vecsMem.nSize, 1, &vCutTable[rootId * CUT_TABLE_SIZE], nVars, &vecsMem, &subg1);
+        minatoIsop(vTruth + startIdx, nVars, vecsMem);
+        sopFactor(vecsMem->pArray, vecsMem->nSize, 1, &vCutTable[rootId * CUT_TABLE_SIZE], nVars, vecsMem, &subg1);
         nAdded1 = evaluateSubg(rootId, &nNewLevel1, &vCutTable[rootId * CUT_TABLE_SIZE], 
                               nVars, nSaved, 1000000000, pLevels, htKeys, htValues, htCapacity, &subg1);
         if (nAdded1 > -1) {
@@ -313,4 +317,3 @@ __global__ void factorFromTruth(const int * vCuts, const int * vCutRanges,
         // free(vTruthTemp);
     }
 }
-

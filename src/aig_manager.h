@@ -57,6 +57,8 @@ public:
     std::string moduleName; // name of the circuit module
     std::string modulePath; // the external file path
     std::string moduleInfo; // comments and additional info in the last part of the file
+    std::vector<std::string> piNames; // PI names from ABC network (preserved across gget/gput)
+    std::vector<std::string> poNames; // PO names from ABC network (preserved across gget/gput)
     int deviceAllocated; // indicator of whether device data is allocated
 
     // device data

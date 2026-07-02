@@ -187,6 +187,7 @@ int AIGMan::readFromMemory(char * pContents, int nFileSize) {
         // update num fanouts
         thisFanin0Idx = (size_t)(uLit0 >> 1);
         thisFanin1Idx = (size_t)(uLit1 >> 1);
+
         ++pNumFanouts[thisFanin0Idx];
         ++pNumFanouts[thisFanin1Idx];
 
@@ -209,8 +210,28 @@ int AIGMan::readFromMemory(char * pContents, int nFileSize) {
         while (*pCur++ != '\n');
     }
 
-    // skipping symbols and comments
+    // parse symbol section: lines like "i<idx> <name>\n" or "o<idx> <name>\n",
+    // terminated by either EOF or a 'c' line introducing comments.
+    piNames.assign(nPIs, std::string());
+    poNames.assign(nPOs, std::string());
     pCur = pSymbols;
+    char * pEnd = pContents + nFileSize;
+    while (pCur < pEnd && *pCur != 'c') {
+        char tag = *pCur;
+        if (tag != 'i' && tag != 'o' && tag != 'l') break;
+        ++pCur;
+        int idx = atoi(pCur);
+        while (pCur < pEnd && *pCur != ' ' && *pCur != '\n') ++pCur;
+        if (pCur < pEnd && *pCur == ' ') {
+            ++pCur;
+            char * pNameBegin = pCur;
+            while (pCur < pEnd && *pCur != '\n') ++pCur;
+            std::string name(pNameBegin, pCur - pNameBegin);
+            if (tag == 'i' && idx >= 0 && idx < nPIs) piNames[idx] = name;
+            else if (tag == 'o' && idx >= 0 && idx < nPOs) poNames[idx] = name;
+        }
+        if (pCur < pEnd && *pCur == '\n') ++pCur;
+    }
 
     return 1;
 }
@@ -244,6 +265,13 @@ void AIGMan::saveFile(const char * path) {
         aigEncodeBinary(buffer, cur, lit1 - lit0);
     }
     fwrite(buffer, sizeof(char), cur * sizeof(char), file);
+    // emit aiger symbol table so downstream tools (cec) can name-match
+    for (int i = 0; i < this->nPIs; ++i)
+        if (i < (int)piNames.size() && !piNames[i].empty())
+            fprintf(file, "i%d %s\n", i, piNames[i].c_str());
+    for (int i = 0; i < this->nPOs; ++i)
+        if (i < (int)poNames.size() && !poNames[i].empty())
+            fprintf(file, "o%d %s\n", i, poNames[i].c_str());
     for(auto e : this->moduleInfo)
         putc(e, file);
     fprintf(file, "c\n");
@@ -254,9 +282,15 @@ void AIGMan::saveFile(const char * path) {
 }
 
 void AIGMan::printTime() {
-    printf("{time} prev cmd: alg %.2lf s, full %.2lf s; total: alg %.2lf s, full %.2lf s.\n",
-           (double) prevAlgTime / CLOCKS_PER_SEC, (double) prevFullTime / CLOCKS_PER_SEC,
-           (double) totalAlgTime / CLOCKS_PER_SEC, (double) totalFullTime / CLOCKS_PER_SEC);
+    // printf("{time} prev cmd: alg %.2lf s, full %.2lf s; total: alg %.2lf s, full %.2lf s.\n",
+    //        (double) prevAlgTime / CLOCKS_PER_SEC, (double) prevFullTime / CLOCKS_PER_SEC,
+    //        (double) totalAlgTime / CLOCKS_PER_SEC, (double) totalFullTime / CLOCKS_PER_SEC);
+    // swich to cout
+    std::cout << "{time} prev cmd: alg " 
+              << (double) prevAlgTime / CLOCKS_PER_SEC << " s, full " 
+              << (double) prevFullTime / CLOCKS_PER_SEC << " s; total: alg " 
+              << (double) totalAlgTime / CLOCKS_PER_SEC << " s, full " 
+              << (double) totalFullTime / CLOCKS_PER_SEC << " s.\n";
 }
 
 
@@ -330,6 +364,8 @@ void AIGMan::clearHost() {
         free(pNumFanouts);
 
         nObjs = nPIs = nPOs = nNodes = 0;
+        // piNames/poNames must persist across gget→GPU ops→gput cycle;
+        // they are re-populated by AbcNtkToGpuMan on the next gget.
     }
 }
 
@@ -592,9 +628,12 @@ void AIGMan::printStats() {
     if (deviceAllocated) {
         printStatsKernel<<<1, 1>>>(d_pnPIs, d_pnPOs, d_pnNodes);
         cudaDeviceSynchronize();
-        std::printf(" level = %d\n", nLevels);
+        // std::printf(" level = %d\n", nLevels);
+        std::cout << " level = " << nLevels << "\n";
     } else {
-        std::printf("AIG stats: i/o = %d/%d and = %d level = %d\n", nPIs, nPOs, nNodes, nLevels);
+        // std::printf("AIG stats: i/o = %d/%d and = %d level = %d\n", nPIs, nPOs, nNodes, nLevels);
+        std::cout << "AIG stats: i/o = " << nPIs << "/" << nPOs 
+                  << " and = " << nNodes << " level = " << nLevels << "\n";
     }
 }
 

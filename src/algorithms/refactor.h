@@ -1,6 +1,8 @@
 #pragma once
 #include <tuple>
 #include "common.h"
+#include "misc/vectors.cuh"
+#include "algorithms/sop/sop.cuh"
 
 
 std::tuple<int, int *, int *, int *, int> 
@@ -18,6 +20,7 @@ refactorMFFCPerform(bool fUseZeros, bool fUpdateLevel, int cutSize,
 __global__ void resynCut(const int * vResynInd, const int * vCutTable, const int * vCutSizes, const int * vNumSaved, 
                          const uint64 * htKeys, const uint32 * htValues, int htCapacity, const int * pLevels, 
                          uint64 * vSubgTable, int * vSubgLinks, int * vSubgLens, int * pSubgTableNext,
+                         VecsMem<unsigned, sop::ISOP_FACTOR_MEM_CAP> * vVecsMemPool,
                          unsigned * vTruth, const int * vTruthRanges, const unsigned * vTruthElem, int nMaxCutSize, int nResyn);
 __global__ void factorFromTruth(const int * vCuts, const int * vCutRanges, 
                                 uint64 * vSubgTable, int * vSubgLinks, int * vSubgLens, int * pSubgTableNext,
@@ -25,13 +28,12 @@ __global__ void factorFromTruth(const int * vCuts, const int * vCutRanges,
                                 const unsigned * vTruthElem, int nResyn);
 
 
-const int MAX_CUT_SIZE = 20;
+const int MAX_CUT_SIZE = 16;
 const int CUT_TABLE_SIZE = 16;
 const int SUBG_TABLE_SIZE = 8;
 const int STACK_SIZE = 192;
-const int MAX_SUBG_SIZE = 256;
+const int MAX_SUBG_SIZE = 512;
 const double HT_LOAD_FACTOR = 0.25;
-
 
 
 

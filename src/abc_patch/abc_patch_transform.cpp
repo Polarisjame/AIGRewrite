@@ -36,11 +36,13 @@ bool AbcNtkToGpuMan(Abc_Ntk_t * pNtk, AIGMan * pMan) {
     // process const and PIs
     std::unordered_map<int, int> mAbc2GpuId;
     mAbc2GpuId[Abc_AigConst1(pNtk)->Id] = AigConst1;
+    pMan->piNames.resize(pMan->nPIs);
     Abc_NtkForEachCi(pNtk, pObj, i) {
         assert(mAbc2GpuId.count(pObj->Id) == 0);
         mAbc2GpuId[pObj->Id] = i + 1;
+        pMan->piNames[i] = Abc_ObjName(pObj);
     }
-    
+
     // create AND nodes
     int maxDelay = -1;
     Vec_PtrForEachEntry(Abc_Obj_t *, vNodes, pObj, i) {
@@ -70,12 +72,14 @@ bool AbcNtkToGpuMan(Abc_Ntk_t * pNtk, AIGMan * pMan) {
     pMan->nLevels = maxDelay;
 
     // process POs
+    pMan->poNames.resize(pMan->nPOs);
     Abc_NtkForEachCo(pNtk, pObj, i) {
         pObj0 = Abc_ObjFanin0(pObj);
         assert(mAbc2GpuId.count(pObj0->Id) > 0);
         id0 = mAbc2GpuId[pObj0->Id];
         pMan->pOuts[i] = AigNodeLitCond(id0, Abc_ObjFaninC0(pObj));
         ++pMan->pNumFanouts[id0];
+        pMan->poNames[i] = Abc_ObjName(pObj);
     }
 
     Vec_PtrFree(vNodes);
@@ -105,12 +109,18 @@ Abc_Ntk_t * GpuManToAbcNtk(AIGMan * pMan) {
         pObj = Abc_NtkCreatePi(pNtk);
         pObj->Level = 0;
         vGpu2AbcObj[i] = pObj;
+        if (i - 1 < (int)pMan->piNames.size() && !pMan->piNames[i-1].empty())
+            Abc_ObjAssignName(pObj, (char*)pMan->piNames[i-1].c_str(), NULL);
     }
     for (i = 0; i < pMan->nPOs; i++) {
         pObj = Abc_NtkCreatePo(pNtk);
         vAbcPos[i] = pObj;
+        if (i < (int)pMan->poNames.size() && !pMan->poNames[i].empty()) {
+            Abc_ObjAssignName(pObj, (char*)pMan->poNames[i].c_str(), NULL);
+        }
     }
 
+    // FILE* fp = fopen("gpu2abc.log", "w");
     // create AND nodes
     for (i = pMan->nPIs + 1; i < pMan->nObjs; i++) {
         lit0 = pMan->pFanin0[i];
@@ -123,12 +133,14 @@ Abc_Ntk_t * GpuManToAbcNtk(AIGMan * pMan) {
             (Aig_Obj_t *)pObj0, AigNodeIsComplement(lit0));
         pObj1 = (Abc_Obj_t *)Aig_NotCond(
             (Aig_Obj_t *)pObj1, AigNodeIsComplement(lit1));
+        // Abc_AigAnd performs structural hashing and may return a complemented
+        // pointer for degenerate cases (e.g. AND(x, !x) -> Abc_ObjNot(Const1)).
+        // Store as-is; downstream Aig_NotCond merges the complement bit.
         pObj = Abc_AigAnd((Abc_Aig_t *)pNtk->pManFunc, pObj0, pObj1);
-        assert(!Aig_IsComplement((Aig_Obj_t *)pObj));
-
         vGpu2AbcObj[i] = pObj;
         // delay has already been propagated in Abc_AigAnd()
     }
+    // fclose(fp);
     assert(Abc_NtkCiNum(pNtk) == pMan->nPIs);
     assert(Abc_NtkCoNum(pNtk) == pMan->nPOs);
     assert(Abc_NtkNodeNum(pNtk) <= pMan->nNodes);

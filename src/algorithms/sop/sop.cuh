@@ -10,7 +10,7 @@ struct Sop {
 
 // note that CUDA can maximally allocate 512 KB (= 2^17 32-bit words) local memory for each thread,
 // but we also need to leave some memory spaces for other variables and the function call stack
-const int ISOP_FACTOR_MEM_CAP = 1 << 13;
+const int ISOP_FACTOR_MEM_CAP = 1 << 16;
 
 
 } // namespace sop

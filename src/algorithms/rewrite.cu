@@ -7,6 +7,7 @@
 #include <cassert>
 #include <string>
 #include <sstream>
+#include <time.h>
 #include "common.h"
 #include "rewrite.h"
 #include "robin_hood.h"
@@ -429,6 +430,15 @@ __device__ int Eval(int cur, int *match, int Class, Library *lib, int curId) {
     return 1 + Eval(lib->fanin0[Class][cur - 4], match, Class, lib, curId) + Eval(lib->fanin1[Class][cur - 4], match, Class, lib, curId);
 }
 
+__device__ void dfsSubRoot(int rt, int Class, int * isLeaf, Library *lib){
+    if(isLeaf[rt]){
+        assert(rt < 4);
+        return;
+    }
+    printf("Rt: %d, fanins:%d %d\n", rt, lib->fanin0[Class][rt - 4], lib->fanin1[Class][rt - 4]);
+    dfsSubRoot(lib->fanin0[Class][rt - 4], Class, isLeaf, lib);
+    dfsSubRoot(lib->fanin1[Class][rt - 4], Class, isLeaf, lib);
+}
 
 /// @brief 对节点并行替换子图进行Evaluate，其中子图是以Cut为边界的MFFC，以便后续并行替换
 /// @param sz 节点个数
@@ -456,13 +466,14 @@ __global__ void EvaluateNode(int sz, int *bestout, int *fanin0, int *fanin1, int
         tableSize = 0;
         int saved = CalcMFFC(id, cut, fanin0, fanin1, &tableSize, tableId, tableNum, nRef, id); //得到old graph的结点数
         // int savedLevel = CalcMFFCLevel(id, cut, fanin0, fanin1, &tableSize, tableId, tableNum, nRef, id, numInputs); //得到old graph的结点数
-        int savedLevel = nodeLevels[id];
+        // int savedLevel = nodeLevels[id];
         int uPhase = lib->pPhases[cut->truthtable];
         int Class = lib->pMap[cut->truthtable];
         int *pPerm = lib->pPerms4[lib->pPerms[cut->truthtable]];
-        for(int j = 0; j < 54; j++)
+        for(int j = 0; j < 54; j++){
             match[j] = matchLevel[j] = -1;
-	      uint64_t isC = 0;
+        }
+        uint64_t isC = 0;
         for(int j = 0; j < 4; j++) { //不太了解
             match[j] = cut->leaves[pPerm[j]];
             matchLevel[j] = nodeLevels[match[j]];
@@ -477,7 +488,7 @@ __global__ void EvaluateNode(int sz, int *bestout, int *fanin0, int *fanin1, int
 
             if(match[in0] == -1 || match[in1] == -1 || match[in0] == id || match[in1] == id) continue;
             int nodeId = TableLookup(match[in0], match[in1], (isC >> in0 & 1) ^ lib->isC0[Class][j], (isC >> in1 & 1) ^ lib->isC1[Class][j], hashTable, fanin0, fanin1, isC0, isC1);
-            if(nodeId != -1 && !IsDeleted(nodeId, &tableSize, tableId, tableNum)) {
+            if(nodeId != -1 && !IsDeleted(nodeId, &tableSize, tableId, tableNum)) { //不在被删除的锥内且图中已有该节点
                 match[num] = nodeId;
                 matchLevel[num] = nodeLevels[nodeId];
             }
@@ -485,7 +496,8 @@ __global__ void EvaluateNode(int sz, int *bestout, int *fanin0, int *fanin1, int
         for(int out = 0; out < lib->nSubgr[Class]; out++) {
             int rt = lib->pSubgr[Class][out];
             if(match[rt] == id) continue;
-            int nodesAdded = Eval(rt, match, Class, lib, -out - 2); //得到new graph的结点数
+            
+            int nodesAdded = Eval(rt, match, Class, lib, -out - 2);
             int rtLevel = matchLevel[rt];
             assert(rtLevel != -1);
             // if(saved - nodesAdded > reduction || (fUseZeros && saved == nodesAdded && bestCut == -1)) {
@@ -494,13 +506,10 @@ __global__ void EvaluateNode(int sz, int *bestout, int *fanin0, int *fanin1, int
             //     bestCut = i;
             //     bestOut = out;
             // }
-            if(!fUpdateLevel && savedLevel - rtLevel < 0) continue;
-            // printf("savedLevel: %d, replaceLevel: %d \n", savedLevel, rtLevel);
-            if (saved - nodesAdded < 0 || (saved - nodesAdded == 0 && !fUseZeros)) //计算收益
+            if (saved - nodesAdded < 0 || (saved - nodesAdded == 0 && !fUseZeros))
                 continue;
             if (saved - nodesAdded < reduction || (saved - nodesAdded == reduction && rtLevel >= bestLevel))
                 continue;
-//记录最好的收益,level,cut-graph
             reduction = saved - nodesAdded;
             bestLevel = rtLevel;
             bestCut = i;
@@ -680,12 +689,99 @@ void ShowMemory() {
     printf("GPU memory usage: used = %f, free = %f MB, total = %f MB\n", used_db/1024.0/1024.0, free_db/1024.0/1024.0, total_db/1024.0/1024.0);
 }
 
+__global__ void printNodes(int sp, int n, int* fanin0, int* fanin1, int* isComplement0, int* isComplement1) {
+    for (int i = sp; i < n; i++) {
+        printf("%d %d %d %d %d\n",
+               fanin0[i], isComplement0[i], fanin1[i], isComplement1[i], i);
+    }
+}
+
 __global__ void printCuts(int id, Cut *cuts) {
     for(int i = 0; i < CUT_SET_SIZE; i++) {
         Cut *cut = cuts + ID(id, i);
         printf("cut#%d details: truthtable %d, used%d, nLeaves=%d, leaves=%d %d %d %d\n", i, cut->truthtable, cut->used, cut->nLeaves, cut->leaves[0], cut->leaves[1], cut->leaves[2], cut->leaves[3]);
     }
 }
+__global__ void printCuts_allNodes(int sp, int n, Cut *cuts) {
+    for (int id = sp + 1; id <= n; id++) {
+        int has = 1;
+        for(int i = 0; i < CUT_SET_SIZE; i++) {
+            Cut *cut = cuts + ID(id, i);
+            if(cut->nLeaves == 0) break;
+            if(cut->nLeaves < 3 || cut->used == 0) continue;
+            // truthtable leaves
+            if(has) {
+                printf("Node: %d\n", id);
+                has = 0;
+            }
+            printf("%d; %d %d %d %d\n", cut->truthtable, cut->leaves[0], cut->leaves[1], cut->leaves[2], cut->leaves[3]);
+        }
+    }
+}
+
+__device__ void print_subgs(int rt, int* match, Library *lib, int Class){
+    if(match[rt] > -1) return;
+    printf("Rt:%d, fanins:%d %d\n", rt, lib->fanin0[Class][rt - 4], lib->fanin1[Class][rt - 4]);
+    // std::cout << "Rt: " << rt << ", fanins: " << lib->fanin0[Class][rt - 4] << " " << lib->fanin1[Class][rt - 4] << std::endl;
+    print_subgs(lib->fanin0[Class][rt - 4], match, lib, Class);
+    print_subgs(lib->fanin1[Class][rt - 4], match, lib, Class);
+}
+
+__global__ void printSubStates(int sp, int n, Cut *cuts, Library *lib, TableNode* hashTable, int *fanin0, int *fanin1, int *isC0, int *isC1, int *nodeLevels) {
+    int match[54], tableSize, tableId[TABLE_SIZE], tableNum[TABLE_SIZE];
+    for(int id=sp+1; id<=n; id++){
+        int has = 1;
+        int cnt = 0;
+        for(int i = 0; i < CUT_SET_SIZE; i++) { //对该节点每个cut遍历
+            Cut *cut = cuts + ID(id, i);
+            if(cut->used == 0 || cut->nLeaves < 3) continue;
+
+            if (has) {
+                printf("Node: %d\n", id);
+                has = 0;
+            }
+            printf("Cut: %d\n", cnt++);
+
+            int nleaves = cut->nLeaves;
+            if(nleaves == 3)
+                cut->leaves[cut->nLeaves++] = 0;
+            tableSize = 0;
+            int uPhase = lib->pPhases[cut->truthtable];
+            int Class = lib->pMap[cut->truthtable];
+
+            printf("TT:%d Class:%d\n", cut->truthtable, Class);
+
+            int *pPerm = lib->pPerms4[lib->pPerms[cut->truthtable]];
+            for(int j = 0; j < 54; j++)
+                match[j] = -1;
+            uint64_t isC = 0;
+            for(int j = 0; j < 4; j++) { //不太了解
+                match[j] = cut->leaves[pPerm[j]];
+                if(uPhase >> j & 1)
+                        isC |= 1LL << j;
+            }
+            for(int j = 0; j < lib->nNodes[Class]; j++) {
+                int num = j + 4;
+                int in0 = lib->fanin0[Class][j], in1 = lib->fanin1[Class][j];
+
+                if(match[in0] == -1 || match[in1] == -1 || match[in0] == id || match[in1] == id) continue;
+                int nodeId = TableLookup(match[in0], match[in1], (isC >> in0 & 1) ^ lib->isC0[Class][j], (isC >> in1 & 1) ^ lib->isC1[Class][j], hashTable, fanin0, fanin1, isC0, isC1);
+                if(nodeId != -1 && !IsDeleted(nodeId, &tableSize, tableId, tableNum)) {
+                    match[num] = nodeId;
+                    printf("match[%d] = %d\n", num, match[num]);
+                }
+            }
+            for(int out = 0; out < lib->nSubgr[Class]; out++) {
+                int rt = lib->pSubgr[Class][out];
+                printf("subId: %d root: %d\n", out, rt);
+                if(match[rt] == id) continue;
+                print_subgs(rt, match, lib, Class);
+                int nodesAdded = Eval(rt, match, Class, lib, -out - 2);
+            }
+        }
+    }
+}
+
 
 /// @brief 将节点的编号转化回id，非门信息储存在isC数组中
 /// @param fanin 
@@ -800,10 +896,42 @@ void GPUSolver::EnumerateAndPreEvaluate(int *level, const vector<int> &levelCoun
     Inputs<<<BLOCK_NUMBER(levelCount[0], LARGE_BLOCK_SIZE), LARGE_BLOCK_SIZE>>> (nRef, cuts, levelCount[0]); // levelCount[0] = PIs个数  得到Inputs的Cut（就是自己）        
     for(int i = 1; i < levelCount.size(); i++)
         CutEnumerate<<<BLOCK_NUMBER(levelCount[i] - levelCount[i - 1], LARGE_BLOCK_SIZE), LARGE_BLOCK_SIZE>>> (fanin0, fanin1, isComplement0, isComplement1, nRef, cuts, levelCount[i - 1], levelCount[i] - levelCount[i - 1]);
+    
+
     cudaDeviceSynchronize(); // 多个线程异步进行，计算完成时需要进行同步
+    // printCuts
+    
+    // clock_t start, end;
+    // start = clock();
+
+    // freopen("/home/zhoulingfeng/EDAProject/AIGRewrite/abc_aig.log", "w", stdout);
+    //     // std::cout<< "Node " << i << ":\n";
+    // printNodes<<<1,1>>>(levelCount[0], n, fanin0, fanin1, isComplement0, isComplement1);
+    // cudaDeviceSynchronize();
+    // freopen("/dev/tty","w",stdout);
+    // end = clock();
+    // std::cout << "Time for printing nodes: " << (end - start) / CLOCKS_PER_SEC << " seconds" << std::endl;
+    
+    // start = clock();
+    // freopen("/home/zhoulingfeng/EDAProject/AIGRewrite/abc_cuts.log", "w", stdout);
+    // printCuts_allNodes<<<1,1>>>(levelCount[0], n, cuts);
+    // cudaDeviceSynchronize();
+    // freopen("/dev/tty","w",stdout);
+    // end = clock();
+    // std::cout << "Time for printing cuts: " << (end - start) / CLOCKS_PER_SEC << " seconds" << std::endl;
+
     ENUM_TIME += clock() - startTime;
     startTime = clock();
     BuildHashTable<<<BLOCK_NUMBER(n, LARGE_BLOCK_SIZE), LARGE_BLOCK_SIZE>>> (hashTable, n, fanin0, fanin1, isComplement0, isComplement1);           
+    
+    // start = clock();
+    // freopen("/home/zhoulingfeng/EDAProject/AIGRewrite/abc_subg.log", "w", stdout);
+    // printSubStates<<<1, 1>>>(levelCount[0], n, cuts, lib, hashTable, fanin0, fanin1, isComplement0, isComplement1, nodeLevels);
+    // cudaDeviceSynchronize();
+    // freopen("/dev/tty","w",stdout);
+    // end = clock();
+    // std::cout << "Time for printing sub-states: " << (end - start) / CLOCKS_PER_SEC << " seconds" << std::endl;
+
     EvaluateNode<<<BLOCK_NUMBER(n, LARGE_BLOCK_SIZE), LARGE_BLOCK_SIZE>>> (n, bestSubgraph, fanin0, fanin1, isComplement0, isComplement1, nodeLevels, cuts, selectedCuts, nRef, lib, hashTable, fUseZeros == true, numInputs, fUpdateLevel);
     gpuErrchk( cudaDeviceSynchronize() );
     auto code = cudaGetLastError();

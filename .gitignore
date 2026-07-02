@@ -13,10 +13,11 @@ log*
 result*
 double*
 novel*
-abc_*
+abc
 *data_s
 MtM
 *.zip
 bTest*
 *.history
 data*
+*data
