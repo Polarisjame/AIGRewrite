@@ -21,3 +21,9 @@ bTest*
 *.history
 data*
 *data
+
+*.plantuml
+*.exe
+
+/pyCommand
+**/*__pycache__*
